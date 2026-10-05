@@ -1,0 +1,45 @@
+name: LaBlood Playwright Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  browser-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Open LaBlood with Chromium
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              page = browser.new_page()
+
+              page.goto(
+                  "https://www.kenketsu.jp/ReservationHome",
+                  wait_until="networkidle",
+                  timeout=60000
+              )
+
+              print("=== PAGE TITLE ===")
+              print(page.title())
+
+              print("=== PAGE TEXT ===")
+              print(page.locator("body").inner_text()[:10000])
+
+              browser.close()
+          PY
