@@ -71,7 +71,7 @@ jobs:
                   raise Exception("北海道を含むselectが見つかりませんでした")
 
               # 北海道を選択
-              target_select.select_option(label="北海道")
+              page.locator("a").filter(has_text="北海道").first.click()
 
               print("=== HOKKAIDO SELECTED ===")
 
