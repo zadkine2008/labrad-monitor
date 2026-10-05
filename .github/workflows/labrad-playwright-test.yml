@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Open LaBlood and select Hokkaido
+      - name: Select Hokkaido
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -35,49 +35,49 @@ jobs:
                   timeout=60000
               )
 
-              print("=== BEFORE CLICK ===")
+              print("=== BEFORE ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # 「都道府県から探す」の北海道を探す
-              hokkaido = page.locator("a").filter(
-                  has_text="北海道"
-              )
+              # 都道府県選択のプルダウンを探す
+              selects = page.locator("select")
 
-              print("北海道を含むリンク数:", hokkaido.count())
+              print("SELECT COUNT:", selects.count())
 
-              for i in range(hokkaido.count()):
+              for i in range(selects.count()):
                   print(
-                      "LINK",
+                      "SELECT",
                       i,
-                      "TEXT:",
-                      hokkaido.nth(i).inner_text(),
-                      "HREF:",
-                      hokkaido.nth(i).get_attribute("href")
+                      "NAME:",
+                      selects.nth(i).get_attribute("name"),
+                      "ID:",
+                      selects.nth(i).get_attribute("id")
                   )
 
-              # 「北海道」と完全一致するリンクを探してクリック
-              target = page.locator("a").filter(
-                  has_text="北海道"
-              ).filter(
-                  has=page.locator("span")
-              )
+              # 「北海道」が入っているselectを探す
+              target_select = None
 
-              # まず北海道という文字を持つリンクの中から、
-              # 都道府県選択部分にあるリンクを利用
-              candidates = page.get_by_text(
-                  "北海道",
-                  exact=True
-              )
+              for i in range(selects.count()):
+                  options = selects.nth(i).locator("option")
+                  option_texts = options.all_inner_texts()
 
-              print("完全一致の北海道:", candidates.count())
+                  if "北海道" in option_texts:
+                      target_select = selects.nth(i)
+                      print("Hokkaido select found:", i)
+                      print("Options:", option_texts)
+                      break
 
-              # 最初の北海道をクリックして確認
-              candidates.first.click()
+              if target_select is None:
+                  raise Exception("北海道を含むselectが見つかりませんでした")
 
-              page.wait_for_load_state("networkidle")
+              # 北海道を選択
+              target_select.select_option(label="北海道")
 
-              print("=== AFTER CLICK ===")
+              print("=== HOKKAIDO SELECTED ===")
+
+              # 画面の更新を待つ
+              page.wait_for_timeout(3000)
+
               print("URL:", page.url)
               print("TITLE:", page.title())
 
