@@ -1,4 +1,4 @@
-name: LaBlood Playwright Test
+name: LaBlood Hokkaido Navigation Test
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Open LaBlood with Chromium
+      - name: Open LaBlood and select Hokkaido
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -35,11 +35,54 @@ jobs:
                   timeout=60000
               )
 
-              print("=== PAGE TITLE ===")
-              print(page.title())
+              print("=== BEFORE CLICK ===")
+              print("URL:", page.url)
+              print("TITLE:", page.title())
+
+              # 「都道府県から探す」の北海道を探す
+              hokkaido = page.locator("a").filter(
+                  has_text="北海道"
+              )
+
+              print("北海道を含むリンク数:", hokkaido.count())
+
+              for i in range(hokkaido.count()):
+                  print(
+                      "LINK",
+                      i,
+                      "TEXT:",
+                      hokkaido.nth(i).inner_text(),
+                      "HREF:",
+                      hokkaido.nth(i).get_attribute("href")
+                  )
+
+              # 「北海道」と完全一致するリンクを探してクリック
+              target = page.locator("a").filter(
+                  has_text="北海道"
+              ).filter(
+                  has=page.locator("span")
+              )
+
+              # まず北海道という文字を持つリンクの中から、
+              # 都道府県選択部分にあるリンクを利用
+              candidates = page.get_by_text(
+                  "北海道",
+                  exact=True
+              )
+
+              print("完全一致の北海道:", candidates.count())
+
+              # 最初の北海道をクリックして確認
+              candidates.first.click()
+
+              page.wait_for_load_state("networkidle")
+
+              print("=== AFTER CLICK ===")
+              print("URL:", page.url)
+              print("TITLE:", page.title())
 
               print("=== PAGE TEXT ===")
-              print(page.locator("body").inner_text()[:10000])
+              print(page.locator("body").inner_text()[:15000])
 
               browser.close()
           PY
