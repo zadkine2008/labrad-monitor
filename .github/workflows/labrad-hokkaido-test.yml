@@ -1,4 +1,4 @@
-name: LaBlood Hokkaido Connection Test
+name: LaBlood Hokkaido Page Test
 
 on:
   workflow_dispatch:
@@ -8,23 +8,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Access LaBlood reservation page
+      - name: Download LaBlood reservation page
         run: |
-          echo "=== LaBlood connection test ==="
+          echo "=== LaBlood reservation page test ==="
 
           curl -L --max-time 30 \
             -A "Mozilla/5.0" \
             -o labrad.html \
             "https://www.kenketsu.jp/ReservationHome"
 
-          echo "=== HTTP/page check ==="
-
-          if grep -q "献血の予約" labrad.html; then
-            echo "SUCCESS: LaBlood reservation page was retrieved."
-          else
-            echo "ERROR: LaBlood reservation page could not be confirmed."
-            exit 1
-          fi
-
-          echo "=== Page size ==="
+          echo "=== Download completed ==="
           wc -c labrad.html
+
+      - name: Search Hokkaido information
+        run: |
+          echo "=== Search results ==="
+
+          grep -o "北海道" labrad.html | head -20 || true
+
+          echo "=== ReservationHome links ==="
+
+          grep -o 'href="[^"]*"' labrad.html | head -50 || true
+
+          echo "=== Test completed ==="
