@@ -1,4 +1,4 @@
-name: LaBlood Login Structure Test
+name: LaBlood Non Member Reservation Test
 
 on:
   workflow_dispatch:
@@ -20,18 +20,19 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Inspect login page
+      - name: Open non-member reservation
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
 
           with sync_playwright() as p:
+
               browser = p.chromium.launch()
 
               page = browser.new_page()
 
               # ==========================================
-              # 1. ラブラッド予約ページを開く
+              # 1. ラブラッド予約ページ
               # ==========================================
 
               page.goto(
@@ -45,10 +46,8 @@ jobs:
               print("TITLE:", page.title())
 
               # ==========================================
-              # 2. 北海道リンクを探す
+              # 2. 北海道リンク
               # ==========================================
-
-              print("=== HOKKAIDO LINK ===")
 
               links = page.locator("a")
 
@@ -67,19 +66,16 @@ jobs:
 
                       hokkaido_link = link
 
-                      print("北海道リンク発見")
-                      print("LINK NUMBER:", i)
-                      print("TEXT:", text)
                       print(
-                          "HREF:",
-                          link.get_attribute("href")
+                          "北海道リンク発見:",
+                          i
                       )
 
                       break
 
               if hokkaido_link is None:
                   raise Exception(
-                      "北海道リンクが見つかりませんでした"
+                      "北海道リンクが見つかりません"
                   )
 
               # ==========================================
@@ -90,216 +86,96 @@ jobs:
 
               hokkaido_link.click()
 
-              # JavaScriptによる画面遷移を待つ
               page.wait_for_timeout(3000)
 
-              print("=== AFTER HOKKAIDO ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
 
               # ==========================================
-              # 4. 「会員登録せずに献血する」を探す
+              # 4. 「献血の予約」リンクを探す
               # ==========================================
 
               print(
-                  "=== NON-MEMBER RESERVATION ==="
+                  "=== NON MEMBER RESERVATION ==="
               )
 
-              target = page.get_by_text(
-                  "会員登録せずに献血する",
-                  exact=True
+              reservation_link = page.locator(
+                  "a"
+              ).filter(
+                  has_text="献血の予約"
               )
 
               print(
-                  "完全一致件数:",
-                  target.count()
+                  "献血の予約リンク数:",
+                  reservation_link.count()
               )
 
-              if target.count() == 0:
+              if reservation_link.count() == 0:
                   raise Exception(
-                      "「会員登録せずに献血する」が見つかりません"
+                      "「献血の予約」リンクが見つかりません"
                   )
 
-              # 最初の要素を対象にする
-              target = target.first
-
-              print("TAG:", target.evaluate(
-                  "(el) => el.tagName"
-              ))
-
-              print("VISIBLE:", target.is_visible())
-
-              print("HTML:", target.evaluate(
-                  "(el) => el.outerHTML"
-              ))
-
-              # ==========================================
-              # 5. 親要素を調査
-              # ==========================================
-
-              print("=== PARENT ELEMENTS ===")
-
-              for level in range(1, 5):
-
-                  try:
-
-                      info = target.evaluate(
-                          """
-                          (el, level) => {
-
-                              let e = el;
-
-                              for (
-                                  let i = 0;
-                                  i < level;
-                                  i++
-                              ) {
-
-                                  if (e.parentElement) {
-                                      e = e.parentElement;
-                                  }
-
-                              }
-
-                              return {
-
-                                  tag: e.tagName,
-
-                                  id: e.id,
-
-                                  className:
-                                      typeof e.className === "string"
-                                      ? e.className
-                                      : "",
-
-                                  html:
-                                      e.outerHTML.substring(
-                                          0,
-                                          3000
-                                      )
-                              };
-                          }
-                          """,
-                          level
-                      )
-
-                      print(
-                          "=== LEVEL",
-                          level,
-                          "==="
-                      )
-
-                      print(
-                          "TAG:",
-                          info["tag"]
-                      )
-
-                      print(
-                          "ID:",
-                          info["id"]
-                      )
-
-                      print(
-                          "CLASS:",
-                          info["className"]
-                      )
-
-                      print(
-                          "HTML:",
-                          info["html"]
-                      )
-
-                  except Exception as e:
-
-                      print(
-                          "PARENT ERROR:",
-                          e
-                      )
-
-              # ==========================================
-              # 6. 現在のページにあるリンクを確認
-              # ==========================================
-
-              print("=== LINKS ===")
-
-              all_links = page.locator("a")
-
-              for i in range(all_links.count()):
-
-                  link = all_links.nth(i)
-
-                  try:
-                      text = link.inner_text().strip()
-                  except Exception:
-                      text = ""
-
-                  href = link.get_attribute("href")
-
-                  if text:
-
-                      print(
-                          "LINK",
-                          i,
-                          "TEXT:",
-                          text,
-                          "HREF:",
-                          href
-                      )
-
-              # ==========================================
-              # 7. ボタンを確認
-              # ==========================================
-
-              print("=== BUTTONS ===")
-
-              buttons = page.locator("button")
+              # 最初の「献血の予約」を使用
+              reservation_link = reservation_link.first
 
               print(
-                  "BUTTON COUNT:",
-                  buttons.count()
+                  "LINK HTML:",
+                  reservation_link.evaluate(
+                      "(el) => el.outerHTML"
+                  )
               )
 
-              for i in range(buttons.count()):
-
-                  button = buttons.nth(i)
-
-                  try:
-                      text = button.inner_text().strip()
-                  except Exception:
-                      text = ""
-
-                  if text:
-
-                      print(
-                          "BUTTON",
-                          i,
-                          "TEXT:",
-                          text
-                      )
-
-                      try:
-
-                          print(
-                              "HTML:",
-                              button.evaluate(
-                                  "(el) => el.outerHTML"
-                              )
-                          )
-
-                      except Exception:
-                          pass
-
               # ==========================================
-              # 8. ページ全体のテキスト
+              # 5. 非会員予約をクリック
               # ==========================================
 
-              print("=== PAGE TEXT ===")
+              print(
+                  "=== CLICK RESERVATION ==="
+              )
+
+              reservation_link.click()
+
+              # JSFによる画面遷移を待つ
+              page.wait_for_timeout(5000)
+
+              print(
+                  "=== AFTER RESERVATION CLICK ==="
+              )
+
+              print(
+                  "URL:",
+                  page.url
+              )
+
+              print(
+                  "TITLE:",
+                  page.title()
+              )
+
+              # ==========================================
+              # 6. 現在の画面を確認
+              # ==========================================
+
+              print(
+                  "=== PAGE TEXT ==="
+              )
 
               print(
                   page.locator(
                       "body"
-                  ).inner_text()[:15000]
+                  ).inner_text()[:20000]
               )
 
+              # ==========================================
+              # 7. URLが変化した場合の確認
+              # ==========================================
+
+              print(
+                  "=== CURRENT URL ==="
+              )
+
+              print(page.url)
+
               browser.close()
+
           PY
