@@ -1,4 +1,4 @@
-name: LaBlood Hokkaido Navigation Test
+name: LaBlood Login Navigation Test
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Open LaBlood and select Hokkaido
+      - name: Inspect non-member reservation button
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -29,65 +29,21 @@ jobs:
               browser = p.chromium.launch()
               page = browser.new_page()
 
-              # ラブラッド予約ページを開く
+              # 予約ページ
               page.goto(
                   "https://www.kenketsu.jp/ReservationHome",
                   wait_until="networkidle",
                   timeout=60000
               )
 
-              print("=== BEFORE ===")
+              print("=== RESERVATION HOME ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # 「北海道」を含むリンクを確認
-              print("=== HOKKAIDO LINKS ===")
-
+              # 北海道リンクを探す
               links = page.locator("a")
-              hokkaido_links = []
 
-              for i in range(links.count()):
-                  link = links.nth(i)
-                  text = link.inner_text().strip()
-                  href = link.get_attribute("href")
-
-                  if "北海道" in text:
-                      hokkaido_links.append(link)
-                      print(
-                          "LINK",
-                          i,
-                          "TEXT:",
-                          text,
-                          "HREF:",
-                          href
-                      )
-
-              print(
-                  "北海道を含むリンク数:",
-                  len(hokkaido_links)
-              )
-
-              if len(hokkaido_links) == 0:
-                  raise Exception(
-                      "北海道を含むリンクが見つかりませんでした"
-                  )
-
-              # 北海道リンクをクリック
-              print("=== CLICK HOKKAIDO ===")
-
-              hokkaido_links[0].click()
-
-              # 画面遷移・JavaScript処理を待つ
-              page.wait_for_timeout(3000)
-
-              print("=== AFTER HOKKAIDO ===")
-              print("URL:", page.url)
-              print("TITLE:", page.title())
-
-              # 現在の画面にあるリンクを確認
-              print("=== RESERVATION LINKS ===")
-
-              links = page.locator("a")
+              hokkaido_link = None
 
               for i in range(links.count()):
                   link = links.nth(i)
@@ -97,23 +53,95 @@ jobs:
                   except:
                       text = ""
 
-                  href = link.get_attribute("href")
+                  if text == "北海道":
+                      hokkaido_link = link
+                      print("北海道リンク発見")
+                      print("HREF:", link.get_attribute("href"))
+                      break
+
+              if hokkaido_link is None:
+                  raise Exception("北海道リンクが見つかりません")
+
+              # 北海道をクリック
+              hokkaido_link.click()
+
+              page.wait_for_timeout(3000)
+
+              print("=== AFTER HOKKAIDO ===")
+              print("URL:", page.url)
+              print("TITLE:", page.title())
+
+              # 「会員登録せずに献血する」を探す
+              print("=== NON-MEMBER RESERVATION ===")
+
+              targets = page.get_by_text(
+                  "会員登録せずに献血する",
+                  exact=True
+              )
+
+              print("完全一致件数:", targets.count())
+
+              for i in range(targets.count()):
+                  target = targets.nth(i)
+
+                  print("---- TARGET", i, "----")
+
+                  try:
+                      print("TAG:", target.evaluate(
+                          "(el) => el.tagName"
+                      ))
+                  except Exception as e:
+                      print("TAG ERROR:", e)
+
+                  try:
+                      print("HTML:", target.evaluate(
+                          "(el) => el.outerHTML"
+                      ))
+                  except Exception as e:
+                      print("HTML ERROR:", e)
+
+                  try:
+                      print("VISIBLE:", target.is_visible())
+                  except Exception as e:
+                      print("VISIBLE ERROR:", e)
+
+                  try:
+                      print("ENABLED:", target.is_enabled())
+                  except Exception as e:
+                      print("ENABLED ERROR:", e)
+
+              # ボタンも確認
+              print("=== BUTTONS ===")
+
+              buttons = page.locator("button")
+
+              print("BUTTON COUNT:", buttons.count())
+
+              for i in range(buttons.count()):
+                  button = buttons.nth(i)
+
+                  try:
+                      text = button.inner_text().strip()
+                  except:
+                      text = ""
 
                   if text:
                       print(
-                          "LINK",
+                          "BUTTON",
                           i,
                           "TEXT:",
-                          text,
-                          "HREF:",
-                          href
+                          text
                       )
 
-              # 現在の画面全体のテキスト
-              print("=== PAGE TEXT ===")
-              print(
-                  page.locator("body").inner_text()[:15000]
-              )
+                      try:
+                          print(
+                              "HTML:",
+                              button.evaluate(
+                                  "(el) => el.outerHTML"
+                              )
+                          )
+                      except:
+                          pass
 
               browser.close()
           PY
