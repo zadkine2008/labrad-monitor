@@ -80,7 +80,14 @@ jobs:
 
               print("URL:", page.url)
               print("TITLE:", page.title())
+print("=== RESERVATION LINKS ===")
 
+for i, link in enumerate(page.locator("a").all()):
+    text = link.inner_text().strip()
+    href = link.get_attribute("href")
+
+    if text:
+        print("LINK", i, "TEXT:", text, "HREF:", href)
               print("=== PAGE TEXT ===")
               print(page.locator("body").inner_text()[:15000])
 
