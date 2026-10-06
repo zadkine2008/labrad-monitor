@@ -1,10 +1,10 @@
-name: LaBlood Age Check Test
+name: LaBlood Age Form Inspect
 
 on:
   workflow_dispatch:
 
 jobs:
-  browser-test:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Test age confirmation
+      - name: Inspect age form
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -32,7 +32,7 @@ jobs:
               page = browser.new_page()
 
               # =========================================
-              # ① ラブラッド予約トップ
+              # ReservationHome
               # =========================================
 
               page.goto(
@@ -41,12 +41,8 @@ jobs:
                   timeout=60000
               )
 
-              print("=== RESERVATION HOME ===")
-              print("URL:", page.url)
-              print("TITLE:", page.title())
-
               # =========================================
-              # ② 北海道
+              # 北海道
               # =========================================
 
               links = page.locator("a")
@@ -63,14 +59,7 @@ jobs:
                       text = ""
 
                   if text == "北海道":
-
                       hokkaido_link = link
-
-                      print(
-                          "北海道リンク発見:",
-                          i
-                      )
-
                       break
 
               if hokkaido_link is None:
@@ -82,12 +71,8 @@ jobs:
 
               page.wait_for_timeout(3000)
 
-              print("=== AFTER HOKKAIDO ===")
-              print("URL:", page.url)
-              print("TITLE:", page.title())
-
               # =========================================
-              # ③ 献血の予約
+              # 献血の予約
               # =========================================
 
               reservation_link = page.locator(
@@ -96,21 +81,12 @@ jobs:
                   has_text="献血の予約"
               ).first
 
-              if reservation_link.count() == 0:
-                  raise Exception(
-                      "「献血の予約」が見つかりません"
-                  )
-
               reservation_link.click()
 
               page.wait_for_timeout(3000)
 
-              print("=== AFTER RESERVATION ===")
-              print("URL:", page.url)
-              print("TITLE:", page.title())
-
               # =========================================
-              # ④ 献血予約の開始
+              # 献血予約の開始
               # =========================================
 
               start_link = page.locator(
@@ -119,322 +95,159 @@ jobs:
                   has_text="献血予約の開始"
               ).first
 
-              if start_link.count() == 0:
-                  raise Exception(
-                      "「献血予約の開始」が見つかりません"
-                  )
-
               start_link.click()
 
               page.wait_for_timeout(3000)
 
-              print("=== AGE CHECK PAGE ===")
+              print("================================")
+              print("AGE FORM INSPECTION")
+              print("================================")
+
               print("URL:", page.url)
               print("TITLE:", page.title())
 
               # =========================================
-              # ⑤ 性別を確認
+              # ① 性別関連HTML
               # =========================================
 
-              print("=== SELECT GENDER ===")
+              print("")
+              print("=== GENDER RELATED ELEMENTS ===")
 
-              # ラベル・selectの構造を確認
-              selects = page.locator("select")
+              gender_candidates = page.locator(
+                  "input, label"
+              )
+
+              for i in range(
+                  gender_candidates.count()
+              ):
+
+                  el = gender_candidates.nth(i)
+
+                  try:
+                      text = el.inner_text().strip()
+                  except Exception:
+                      text = ""
+
+                  html = el.evaluate(
+                      "(el) => el.outerHTML"
+                  )
+
+                  if (
+                      "男性" in text
+                      or "女性" in text
+                      or "男性" in html
+                      or "女性" in html
+                  ):
+
+                      print(
+                          "ELEMENT",
+                          i
+                      )
+
+                      print(
+                          html
+                      )
+
+              # =========================================
+              # ② select構造
+              # =========================================
+
+              print("")
+              print("=== SELECT ELEMENTS ===")
+
+              selects = page.locator(
+                  "select"
+              )
 
               print(
                   "select数:",
                   selects.count()
               )
 
-              for i in range(selects.count()):
-
-                  select = selects.nth(i)
-
-                  print(
-                      "SELECT",
-                      i,
-                      "NAME:",
-                      select.get_attribute("name"),
-                      "ID:",
-                      select.get_attribute("id")
-                  )
-
-              # =========================================
-              # 男性を選択
-              # =========================================
-
-              gender_selected = False
-
-              for i in range(selects.count()):
-
-                  select = selects.nth(i)
-
-                  options = select.locator("option")
-
-                  option_texts = []
-
-                  for j in range(options.count()):
-
-                      option_texts.append(
-                          options.nth(j).inner_text().strip()
-                      )
-
-                  if "男性" in option_texts:
-
-                      select.select_option(
-                          label="男性"
-                      )
-
-                      print(
-                          "男性を選択しました"
-                      )
-
-                      gender_selected = True
-
-                      break
-
-              if not gender_selected:
-
-                  raise Exception(
-                      "男性を選択できるselectが見つかりません"
-                  )
-
-              # =========================================
-              # ⑥ 生年月日
-              #
-              # テスト用：
-              # 1990年1月1日
-              # =========================================
-
-              print(
-                  "=== SELECT BIRTH DATE ==="
-              )
-
-              selects = page.locator("select")
-
-              print(
-                  "select数:",
+              for i in range(
                   selects.count()
-              )
-
-              # 現在のselectを調査
-              for i in range(selects.count()):
+              ):
 
                   select = selects.nth(i)
 
+                  print("")
                   print(
                       "SELECT",
-                      i,
+                      i
+                  )
+
+                  print(
                       "NAME:",
-                      select.get_attribute("name"),
-                      "ID:",
-                      select.get_attribute("id"),
-                      "OPTIONS:",
-                      select.locator(
-                          "option"
-                      ).count()
-                  )
-
-              # 年
-              year_select = None
-              month_select = None
-              day_select = None
-
-              for i in range(selects.count()):
-
-                  select = selects.nth(i)
-
-                  options = select.locator("option")
-
-                  texts = []
-
-                  for j in range(
-                      min(options.count(), 150)
-                  ):
-
-                      texts.append(
-                          options.nth(j)
-                          .inner_text()
-                          .strip()
+                      select.get_attribute(
+                          "name"
                       )
-
-                  if "1990" in texts:
-
-                      year_select = select
-
-                  elif "13" in texts:
-
-                      # 月には13がなく、
-                      # 日には13がある。
-                      pass
-
-              # selectの順番を確認して
-              # 最初の3つを年月日として扱う
-              #
-              # 実際のHTML構造を確認するため、
-              # まず情報を表示する。
-
-              if selects.count() < 4:
-
-                  raise Exception(
-                      "想定よりselectの数が少ないため停止します"
                   )
 
-              # 一般的な構造：
-              # 0 = 性別
-              # 1 = 年
-              # 2 = 月
-              # 3 = 日
-
-              year_select = selects.nth(1)
-              month_select = selects.nth(2)
-              day_select = selects.nth(3)
-
-              year_select.select_option(
-                  label="1990"
-              )
-
-              month_select.select_option(
-                  label="1"
-              )
-
-              day_select.select_option(
-                  label="1"
-              )
-
-              print(
-                  "生年月日 1990/1/1 を選択しました"
-              )
+                  print(
+                      "HTML:",
+                      select.evaluate(
+                          "(el) => el.outerHTML"
+                      )
+                  )
 
               # =========================================
-              # ⑦ 入力状態を表示
+              # ③ 「次へ」
               # =========================================
 
-              print(
-                  "=== SELECTED VALUES ==="
+              print("")
+              print("=== NEXT ELEMENTS ===")
+
+              all_elements = page.locator(
+                  "input, button, a"
               )
 
-              print(
-                  "性別:",
-                  selects.nth(0).input_value()
-              )
+              for i in range(
+                  all_elements.count()
+              ):
 
-              print(
-                  "年:",
-                  year_select.input_value()
-              )
+                  el = all_elements.nth(i)
 
-              print(
-                  "月:",
-                  month_select.input_value()
-              )
+                  try:
+                      text = el.inner_text().strip()
+                  except Exception:
+                      text = ""
 
-              print(
-                  "日:",
-                  day_select.input_value()
-              )
+                  value = el.get_attribute(
+                      "value"
+                  )
 
-              # =========================================
-              # ⑧ 「次へ」を探す
-              # =========================================
-
-              print(
-                  "=== FIND NEXT BUTTON ==="
-              )
-
-              next_buttons = page.locator(
-                  "input[type='submit'], "
-                  "button, "
-                  "a"
-              ).filter(
-                  has_text="次へ"
-              )
-
-              print(
-                  "次へ候補数:",
-                  next_buttons.count()
-              )
-
-              # 「次へ」のHTMLを確認
-              if next_buttons.count() > 0:
-
-                  for i in range(
-                      next_buttons.count()
+                  if (
+                      "次へ" in text
+                      or value == "次へ"
                   ):
-
-                      element = next_buttons.nth(i)
 
                       print(
-                          "NEXT",
-                          i,
-                          element.evaluate(
+                          "NEXT ELEMENT",
+                          i
+                      )
+
+                      print(
+                          el.evaluate(
                               "(el) => el.outerHTML"
                           )
                       )
 
               # =========================================
-              # ⑨ 次へ
+              # ④ 年月日の周辺HTML
               # =========================================
 
-              if next_buttons.count() == 0:
+              print("")
+              print("=== FORM HTML ===")
 
-                  # inputの場合はvalueで検索
-                  next_input = page.locator(
-                      "input[value='次へ']"
-                  )
-
-                  print(
-                      "input[value='次へ']:",
-                      next_input.count()
-                  )
-
-                  if next_input.count() == 0:
-
-                      raise Exception(
-                          "「次へ」が見つかりません"
-                      )
-
-                  next_input.first.click()
-
-              else:
-
-                  next_buttons.first.click()
-
-              page.wait_for_timeout(5000)
-
-              # =========================================
-              # ⑩ 次の画面を確認
-              # =========================================
+              form = page.locator(
+                  "form"
+              ).first
 
               print(
-                  "=== AFTER NEXT CLICK ==="
+                  form.evaluate(
+                      "(el) => el.outerHTML"
+                  )[:30000]
               )
-
-              print(
-                  "URL:",
-                  page.url
-              )
-
-              print(
-                  "TITLE:",
-                  page.title()
-              )
-
-              print(
-                  "=== PAGE TEXT ==="
-              )
-
-              print(
-                  page.locator(
-                      "body"
-                  ).inner_text()[:30000]
-              )
-
-              print(
-                  "=== CURRENT URL ==="
-              )
-
-              print(page.url)
 
               browser.close()
 
