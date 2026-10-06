@@ -1,10 +1,10 @@
-name: LaBlood Age Form Inspect
+name: LaBlood Age Check Test 2
 
 on:
   workflow_dispatch:
 
 jobs:
-  inspect:
+  browser-test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Inspect age form
+      - name: Test age confirmation
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -32,7 +32,7 @@ jobs:
               page = browser.new_page()
 
               # =========================================
-              # ReservationHome
+              # ① ReservationHome
               # =========================================
 
               page.goto(
@@ -42,7 +42,7 @@ jobs:
               )
 
               # =========================================
-              # 北海道
+              # ② 北海道
               # =========================================
 
               links = page.locator("a")
@@ -59,7 +59,14 @@ jobs:
                       text = ""
 
                   if text == "北海道":
+
                       hokkaido_link = link
+
+                      print(
+                          "北海道リンク発見:",
+                          i
+                      )
+
                       break
 
               if hokkaido_link is None:
@@ -72,7 +79,7 @@ jobs:
               page.wait_for_timeout(3000)
 
               # =========================================
-              # 献血の予約
+              # ③ 献血の予約
               # =========================================
 
               reservation_link = page.locator(
@@ -86,7 +93,7 @@ jobs:
               page.wait_for_timeout(3000)
 
               # =========================================
-              # 献血予約の開始
+              # ④ 献血予約の開始
               # =========================================
 
               start_link = page.locator(
@@ -99,61 +106,63 @@ jobs:
 
               page.wait_for_timeout(3000)
 
-              print("================================")
-              print("AGE FORM INSPECTION")
-              print("================================")
-
+              print("")
+              print("=== AGE CHECK PAGE ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
 
               # =========================================
-              # ① 性別関連HTML
+              # ⑤ 男性を選択
               # =========================================
 
               print("")
-              print("=== GENDER RELATED ELEMENTS ===")
+              print("=== SELECT MALE ===")
 
-              gender_candidates = page.locator(
-                  "input, label"
+              male_label = page.locator(
+                  "#selectedmale"
               )
 
-              for i in range(
-                  gender_candidates.count()
-              ):
+              print(
+                  "男性ラベル数:",
+                  male_label.count()
+              )
 
-                  el = gender_candidates.nth(i)
-
-                  try:
-                      text = el.inner_text().strip()
-                  except Exception:
-                      text = ""
-
-                  html = el.evaluate(
-                      "(el) => el.outerHTML"
+              if male_label.count() == 0:
+                  raise Exception(
+                      "男性ラベルが見つかりません"
                   )
 
-                  if (
-                      "男性" in text
-                      or "女性" in text
-                      or "男性" in html
-                      or "女性" in html
-                  ):
+              print(
+                  "男性ラベルHTML:",
+                  male_label.evaluate(
+                      "(el) => el.outerHTML"
+                  )
+              )
 
-                      print(
-                          "ELEMENT",
-                          i
-                      )
+              male_label.click()
 
-                      print(
-                          html
-                      )
+              page.wait_for_timeout(1000)
+
+              print(
+                  "男性を選択しました"
+              )
+
+              # hidden項目を確認
+              selected_male = page.locator(
+                  "#Blooddonationageform\\:j_id41\\:selectedMale"
+              )
+
+              print(
+                  "selectedMale value:",
+                  selected_male.input_value()
+              )
 
               # =========================================
-              # ② select構造
+              # ⑥ 生年月日を設定
               # =========================================
 
               print("")
-              print("=== SELECT ELEMENTS ===")
+              print("=== SELECT BIRTH DATE ===")
 
               selects = page.locator(
                   "select"
@@ -164,90 +173,116 @@ jobs:
                   selects.count()
               )
 
-              for i in range(
-                  selects.count()
-              ):
-
-                  select = selects.nth(i)
-
-                  print("")
-                  print(
-                      "SELECT",
-                      i
+              if selects.count() != 3:
+                  raise Exception(
+                      "生年月日のselectが3つではありません"
                   )
 
-                  print(
-                      "NAME:",
-                      select.get_attribute(
-                          "name"
-                      )
-                  )
+              # 年
+              year_select = selects.nth(0)
 
-                  print(
-                      "HTML:",
-                      select.evaluate(
-                          "(el) => el.outerHTML"
-                      )
-                  )
+              # 月
+              month_select = selects.nth(1)
 
-              # =========================================
-              # ③ 「次へ」
-              # =========================================
+              # 日
+              day_select = selects.nth(2)
 
-              print("")
-              print("=== NEXT ELEMENTS ===")
-
-              all_elements = page.locator(
-                  "input, button, a"
+              year_select.select_option(
+                  "1990"
               )
 
-              for i in range(
-                  all_elements.count()
-              ):
+              month_select.select_option(
+                  "1"
+              )
 
-                  el = all_elements.nth(i)
+              day_select.select_option(
+                  "1"
+              )
 
-                  try:
-                      text = el.inner_text().strip()
-                  except Exception:
-                      text = ""
-
-                  value = el.get_attribute(
-                      "value"
-                  )
-
-                  if (
-                      "次へ" in text
-                      or value == "次へ"
-                  ):
-
-                      print(
-                          "NEXT ELEMENT",
-                          i
-                      )
-
-                      print(
-                          el.evaluate(
-                              "(el) => el.outerHTML"
-                          )
-                      )
-
-              # =========================================
-              # ④ 年月日の周辺HTML
-              # =========================================
-
-              print("")
-              print("=== FORM HTML ===")
-
-              form = page.locator(
-                  "form"
-              ).first
+              page.wait_for_timeout(1000)
 
               print(
-                  form.evaluate(
-                      "(el) => el.outerHTML"
-                  )[:30000]
+                  "生年月日:",
+                  year_select.input_value(),
+                  "/",
+                  month_select.input_value(),
+                  "/",
+                  day_select.input_value()
               )
+
+              # =========================================
+              # ⑦ 「次へ」の状態を確認
+              # =========================================
+
+              print("")
+              print("=== NEXT BUTTON ===")
+
+              next_button = page.locator(
+                  "#Blooddonationageform\\:j_id41\\:nextButton"
+              )
+
+              print(
+                  "次へボタン数:",
+                  next_button.count()
+              )
+
+              if next_button.count() == 0:
+                  raise Exception(
+                      "次へボタンが見つかりません"
+                  )
+
+              print(
+                  "次へHTML:",
+                  next_button.evaluate(
+                      "(el) => el.outerHTML"
+                  )
+              )
+
+              # =========================================
+              # ⑧ 次へをクリック
+              # =========================================
+
+              print("")
+              print("=== CLICK NEXT ===")
+
+              next_button.click(
+                  force=True
+              )
+
+              page.wait_for_timeout(5000)
+
+              # =========================================
+              # ⑨ 結果
+              # =========================================
+
+              print("")
+              print(
+                  "=== AFTER NEXT CLICK ==="
+              )
+
+              print(
+                  "URL:",
+                  page.url
+              )
+
+              print(
+                  "TITLE:",
+                  page.title()
+              )
+
+              print("")
+              print("=== PAGE TEXT ===")
+
+              print(
+                  page.locator(
+                      "body"
+                  ).inner_text()[:30000]
+              )
+
+              print("")
+              print("=== CURRENT URL ===")
+
+              print(page.url)
 
               browser.close()
 
