@@ -1,4 +1,4 @@
-name: LaBlood Reservation Start Test
+name: LaBlood Age Check Test
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Open reservation start
+      - name: Test age confirmation
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -31,7 +31,10 @@ jobs:
 
               page = browser.new_page()
 
+              # =========================================
               # ① ラブラッド予約トップ
+              # =========================================
+
               page.goto(
                   "https://www.kenketsu.jp/ReservationHome",
                   wait_until="networkidle",
@@ -42,7 +45,10 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # ② 北海道をクリック
+              # =========================================
+              # ② 北海道
+              # =========================================
+
               links = page.locator("a")
 
               hokkaido_link = None
@@ -57,11 +63,14 @@ jobs:
                       text = ""
 
                   if text == "北海道":
+
                       hokkaido_link = link
+
                       print(
                           "北海道リンク発見:",
                           i
                       )
+
                       break
 
               if hokkaido_link is None:
@@ -69,115 +78,336 @@ jobs:
                       "北海道リンクが見つかりません"
                   )
 
-              print("=== CLICK HOKKAIDO ===")
-
               hokkaido_link.click()
 
               page.wait_for_timeout(3000)
 
+              print("=== AFTER HOKKAIDO ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # ③ 「献血の予約」をクリック
+              # =========================================
+              # ③ 献血の予約
+              # =========================================
+
               reservation_link = page.locator(
                   "a"
               ).filter(
                   has_text="献血の予約"
               ).first
 
-              print(
-                  "献血の予約リンク数:",
-                  page.locator("a").filter(
-                      has_text="献血の予約"
-                  ).count()
-              )
-
-              print(
-                  "=== CLICK 献血の予約 ==="
-              )
+              if reservation_link.count() == 0:
+                  raise Exception(
+                      "「献血の予約」が見つかりません"
+                  )
 
               reservation_link.click()
 
               page.wait_for_timeout(3000)
 
+              print("=== AFTER RESERVATION ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # ④ 「献血予約の開始」を探す
-              print(
-                  "=== FIND 献血予約の開始 ==="
-              )
+              # =========================================
+              # ④ 献血予約の開始
+              # =========================================
 
-              start_links = page.locator(
+              start_link = page.locator(
                   "a"
               ).filter(
                   has_text="献血予約の開始"
-              )
+              ).first
 
-              print(
-                  "献血予約の開始リンク数:",
-                  start_links.count()
-              )
-
-              if start_links.count() == 0:
-
-                  print(
-                      "=== ALL LINKS ==="
-                  )
-
-                  all_links = page.locator("a")
-
-                  for i in range(
-                      all_links.count()
-                  ):
-
-                      link = all_links.nth(i)
-
-                      try:
-                          text = (
-                              link.inner_text()
-                              .strip()
-                          )
-                      except Exception:
-                          text = ""
-
-                      if text:
-                          print(
-                              "LINK",
-                              i,
-                              "TEXT:",
-                              text,
-                              "HREF:",
-                              link.get_attribute(
-                                  "href"
-                              )
-                          )
-
+              if start_link.count() == 0:
                   raise Exception(
                       "「献血予約の開始」が見つかりません"
                   )
 
-              start_link = start_links.first
-
-              print(
-                  "START LINK HTML:",
-                  start_link.evaluate(
-                      "(el) => el.outerHTML"
-                  )
-              )
-
-              # ⑤ 献血予約の開始をクリック
-              print(
-                  "=== CLICK 献血予約の開始 ==="
-              )
-
               start_link.click()
+
+              page.wait_for_timeout(3000)
+
+              print("=== AGE CHECK PAGE ===")
+              print("URL:", page.url)
+              print("TITLE:", page.title())
+
+              # =========================================
+              # ⑤ 性別を確認
+              # =========================================
+
+              print("=== SELECT GENDER ===")
+
+              # ラベル・selectの構造を確認
+              selects = page.locator("select")
+
+              print(
+                  "select数:",
+                  selects.count()
+              )
+
+              for i in range(selects.count()):
+
+                  select = selects.nth(i)
+
+                  print(
+                      "SELECT",
+                      i,
+                      "NAME:",
+                      select.get_attribute("name"),
+                      "ID:",
+                      select.get_attribute("id")
+                  )
+
+              # =========================================
+              # 男性を選択
+              # =========================================
+
+              gender_selected = False
+
+              for i in range(selects.count()):
+
+                  select = selects.nth(i)
+
+                  options = select.locator("option")
+
+                  option_texts = []
+
+                  for j in range(options.count()):
+
+                      option_texts.append(
+                          options.nth(j).inner_text().strip()
+                      )
+
+                  if "男性" in option_texts:
+
+                      select.select_option(
+                          label="男性"
+                      )
+
+                      print(
+                          "男性を選択しました"
+                      )
+
+                      gender_selected = True
+
+                      break
+
+              if not gender_selected:
+
+                  raise Exception(
+                      "男性を選択できるselectが見つかりません"
+                  )
+
+              # =========================================
+              # ⑥ 生年月日
+              #
+              # テスト用：
+              # 1990年1月1日
+              # =========================================
+
+              print(
+                  "=== SELECT BIRTH DATE ==="
+              )
+
+              selects = page.locator("select")
+
+              print(
+                  "select数:",
+                  selects.count()
+              )
+
+              # 現在のselectを調査
+              for i in range(selects.count()):
+
+                  select = selects.nth(i)
+
+                  print(
+                      "SELECT",
+                      i,
+                      "NAME:",
+                      select.get_attribute("name"),
+                      "ID:",
+                      select.get_attribute("id"),
+                      "OPTIONS:",
+                      select.locator(
+                          "option"
+                      ).count()
+                  )
+
+              # 年
+              year_select = None
+              month_select = None
+              day_select = None
+
+              for i in range(selects.count()):
+
+                  select = selects.nth(i)
+
+                  options = select.locator("option")
+
+                  texts = []
+
+                  for j in range(
+                      min(options.count(), 150)
+                  ):
+
+                      texts.append(
+                          options.nth(j)
+                          .inner_text()
+                          .strip()
+                      )
+
+                  if "1990" in texts:
+
+                      year_select = select
+
+                  elif "13" in texts:
+
+                      # 月には13がなく、
+                      # 日には13がある。
+                      pass
+
+              # selectの順番を確認して
+              # 最初の3つを年月日として扱う
+              #
+              # 実際のHTML構造を確認するため、
+              # まず情報を表示する。
+
+              if selects.count() < 4:
+
+                  raise Exception(
+                      "想定よりselectの数が少ないため停止します"
+                  )
+
+              # 一般的な構造：
+              # 0 = 性別
+              # 1 = 年
+              # 2 = 月
+              # 3 = 日
+
+              year_select = selects.nth(1)
+              month_select = selects.nth(2)
+              day_select = selects.nth(3)
+
+              year_select.select_option(
+                  label="1990"
+              )
+
+              month_select.select_option(
+                  label="1"
+              )
+
+              day_select.select_option(
+                  label="1"
+              )
+
+              print(
+                  "生年月日 1990/1/1 を選択しました"
+              )
+
+              # =========================================
+              # ⑦ 入力状態を表示
+              # =========================================
+
+              print(
+                  "=== SELECTED VALUES ==="
+              )
+
+              print(
+                  "性別:",
+                  selects.nth(0).input_value()
+              )
+
+              print(
+                  "年:",
+                  year_select.input_value()
+              )
+
+              print(
+                  "月:",
+                  month_select.input_value()
+              )
+
+              print(
+                  "日:",
+                  day_select.input_value()
+              )
+
+              # =========================================
+              # ⑧ 「次へ」を探す
+              # =========================================
+
+              print(
+                  "=== FIND NEXT BUTTON ==="
+              )
+
+              next_buttons = page.locator(
+                  "input[type='submit'], "
+                  "button, "
+                  "a"
+              ).filter(
+                  has_text="次へ"
+              )
+
+              print(
+                  "次へ候補数:",
+                  next_buttons.count()
+              )
+
+              # 「次へ」のHTMLを確認
+              if next_buttons.count() > 0:
+
+                  for i in range(
+                      next_buttons.count()
+                  ):
+
+                      element = next_buttons.nth(i)
+
+                      print(
+                          "NEXT",
+                          i,
+                          element.evaluate(
+                              "(el) => el.outerHTML"
+                          )
+                      )
+
+              # =========================================
+              # ⑨ 次へ
+              # =========================================
+
+              if next_buttons.count() == 0:
+
+                  # inputの場合はvalueで検索
+                  next_input = page.locator(
+                      "input[value='次へ']"
+                  )
+
+                  print(
+                      "input[value='次へ']:",
+                      next_input.count()
+                  )
+
+                  if next_input.count() == 0:
+
+                      raise Exception(
+                          "「次へ」が見つかりません"
+                      )
+
+                  next_input.first.click()
+
+              else:
+
+                  next_buttons.first.click()
 
               page.wait_for_timeout(5000)
 
-              # ⑥ クリック後の状態を確認
+              # =========================================
+              # ⑩ 次の画面を確認
+              # =========================================
+
               print(
-                  "=== AFTER RESERVATION START CLICK ==="
+                  "=== AFTER NEXT CLICK ==="
               )
 
               print(
