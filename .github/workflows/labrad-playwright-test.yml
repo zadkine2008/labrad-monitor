@@ -1,4 +1,4 @@
-name: LaBlood Non Member Reservation Test
+name: LaBlood Reservation Start Test
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Open non-member reservation
+      - name: Open reservation start
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -31,10 +31,7 @@ jobs:
 
               page = browser.new_page()
 
-              # ==========================================
-              # 1. ラブラッド予約ページ
-              # ==========================================
-
+              # ① ラブラッド予約トップ
               page.goto(
                   "https://www.kenketsu.jp/ReservationHome",
                   wait_until="networkidle",
@@ -45,10 +42,7 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # ==========================================
-              # 2. 北海道リンク
-              # ==========================================
-
+              # ② 北海道をクリック
               links = page.locator("a")
 
               hokkaido_link = None
@@ -63,24 +57,17 @@ jobs:
                       text = ""
 
                   if text == "北海道":
-
                       hokkaido_link = link
-
                       print(
                           "北海道リンク発見:",
                           i
                       )
-
                       break
 
               if hokkaido_link is None:
                   raise Exception(
                       "北海道リンクが見つかりません"
                   )
-
-              # ==========================================
-              # 3. 北海道をクリック
-              # ==========================================
 
               print("=== CLICK HOKKAIDO ===")
 
@@ -91,55 +78,106 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # ==========================================
-              # 4. 「献血の予約」リンクを探す
-              # ==========================================
-
-              print(
-                  "=== NON MEMBER RESERVATION ==="
-              )
-
+              # ③ 「献血の予約」をクリック
               reservation_link = page.locator(
                   "a"
               ).filter(
                   has_text="献血の予約"
-              )
+              ).first
 
               print(
                   "献血の予約リンク数:",
-                  reservation_link.count()
+                  page.locator("a").filter(
+                      has_text="献血の予約"
+                  ).count()
               )
 
-              if reservation_link.count() == 0:
-                  raise Exception(
-                      "「献血の予約」リンクが見つかりません"
-                  )
-
-              # 最初の「献血の予約」を使用
-              reservation_link = reservation_link.first
-
               print(
-                  "LINK HTML:",
-                  reservation_link.evaluate(
-                      "(el) => el.outerHTML"
-                  )
-              )
-
-              # ==========================================
-              # 5. 非会員予約をクリック
-              # ==========================================
-
-              print(
-                  "=== CLICK RESERVATION ==="
+                  "=== CLICK 献血の予約 ==="
               )
 
               reservation_link.click()
 
-              # JSFによる画面遷移を待つ
-              page.wait_for_timeout(5000)
+              page.wait_for_timeout(3000)
+
+              print("URL:", page.url)
+              print("TITLE:", page.title())
+
+              # ④ 「献血予約の開始」を探す
+              print(
+                  "=== FIND 献血予約の開始 ==="
+              )
+
+              start_links = page.locator(
+                  "a"
+              ).filter(
+                  has_text="献血予約の開始"
+              )
 
               print(
-                  "=== AFTER RESERVATION CLICK ==="
+                  "献血予約の開始リンク数:",
+                  start_links.count()
+              )
+
+              if start_links.count() == 0:
+
+                  print(
+                      "=== ALL LINKS ==="
+                  )
+
+                  all_links = page.locator("a")
+
+                  for i in range(
+                      all_links.count()
+                  ):
+
+                      link = all_links.nth(i)
+
+                      try:
+                          text = (
+                              link.inner_text()
+                              .strip()
+                          )
+                      except Exception:
+                          text = ""
+
+                      if text:
+                          print(
+                              "LINK",
+                              i,
+                              "TEXT:",
+                              text,
+                              "HREF:",
+                              link.get_attribute(
+                                  "href"
+                              )
+                          )
+
+                  raise Exception(
+                      "「献血予約の開始」が見つかりません"
+                  )
+
+              start_link = start_links.first
+
+              print(
+                  "START LINK HTML:",
+                  start_link.evaluate(
+                      "(el) => el.outerHTML"
+                  )
+              )
+
+              # ⑤ 献血予約の開始をクリック
+              print(
+                  "=== CLICK 献血予約の開始 ==="
+              )
+
+              start_link.click()
+
+              page.wait_for_timeout(5000)
+
+              # ⑥ クリック後の状態を確認
+              print(
+                  "=== AFTER RESERVATION START CLICK ==="
               )
 
               print(
@@ -152,10 +190,6 @@ jobs:
                   page.title()
               )
 
-              # ==========================================
-              # 6. 現在の画面を確認
-              # ==========================================
-
               print(
                   "=== PAGE TEXT ==="
               )
@@ -163,12 +197,8 @@ jobs:
               print(
                   page.locator(
                       "body"
-                  ).inner_text()[:20000]
+                  ).inner_text()[:30000]
               )
-
-              # ==========================================
-              # 7. URLが変化した場合の確認
-              # ==========================================
 
               print(
                   "=== CURRENT URL ==="
