@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Select Hokkaido
+      - name: Open LaBlood and select Hokkaido
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -29,6 +29,7 @@ jobs:
               browser = p.chromium.launch()
               page = browser.new_page()
 
+              # ラブラッド予約ページを開く
               page.goto(
                   "https://www.kenketsu.jp/ReservationHome",
                   wait_until="networkidle",
@@ -39,57 +40,80 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # 都道府県選択のプルダウンを探す
-              selects = page.locator("select")
+              # 「北海道」を含むリンクを確認
+              print("=== HOKKAIDO LINKS ===")
 
-              print("SELECT COUNT:", selects.count())
+              links = page.locator("a")
+              hokkaido_links = []
 
-              for i in range(selects.count()):
-                  print(
-                      "SELECT",
-                      i,
-                      "NAME:",
-                      selects.nth(i).get_attribute("name"),
-                      "ID:",
-                      selects.nth(i).get_attribute("id")
+              for i in range(links.count()):
+                  link = links.nth(i)
+                  text = link.inner_text().strip()
+                  href = link.get_attribute("href")
+
+                  if "北海道" in text:
+                      hokkaido_links.append(link)
+                      print(
+                          "LINK",
+                          i,
+                          "TEXT:",
+                          text,
+                          "HREF:",
+                          href
+                      )
+
+              print(
+                  "北海道を含むリンク数:",
+                  len(hokkaido_links)
+              )
+
+              if len(hokkaido_links) == 0:
+                  raise Exception(
+                      "北海道を含むリンクが見つかりませんでした"
                   )
 
-              # 「北海道」が入っているselectを探す
-              target_select = None
+              # 北海道リンクをクリック
+              print("=== CLICK HOKKAIDO ===")
 
-              for i in range(selects.count()):
-                  options = selects.nth(i).locator("option")
-                  option_texts = options.all_inner_texts()
+              hokkaido_links[0].click()
 
-                  if "北海道" in option_texts:
-                      target_select = selects.nth(i)
-                      print("Hokkaido select found:", i)
-                      print("Options:", option_texts)
-                      break
-
-              if target_select is None:
-                  raise Exception("北海道を含むselectが見つかりませんでした")
-
-              # 北海道を選択
-              page.locator("a").filter(has_text="北海道").first.click()
-
-              print("=== HOKKAIDO SELECTED ===")
-
-              # 画面の更新を待つ
+              # 画面遷移・JavaScript処理を待つ
               page.wait_for_timeout(3000)
 
+              print("=== AFTER HOKKAIDO ===")
               print("URL:", page.url)
               print("TITLE:", page.title())
-print("=== RESERVATION LINKS ===")
 
-for i, link in enumerate(page.locator("a").all()):
-    text = link.inner_text().strip()
-    href = link.get_attribute("href")
+              # 現在の画面にあるリンクを確認
+              print("=== RESERVATION LINKS ===")
 
-    if text:
-        print("LINK", i, "TEXT:", text, "HREF:", href)
+              links = page.locator("a")
+
+              for i in range(links.count()):
+                  link = links.nth(i)
+
+                  try:
+                      text = link.inner_text().strip()
+                  except:
+                      text = ""
+
+                  href = link.get_attribute("href")
+
+                  if text:
+                      print(
+                          "LINK",
+                          i,
+                          "TEXT:",
+                          text,
+                          "HREF:",
+                          href
+                      )
+
+              # 現在の画面全体のテキスト
               print("=== PAGE TEXT ===")
-              print(page.locator("body").inner_text()[:15000])
+              print(
+                  page.locator("body").inner_text()[:15000]
+              )
 
               browser.close()
           PY
