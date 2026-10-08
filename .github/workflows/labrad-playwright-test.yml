@@ -1,265 +1,231 @@
-name: LaBlood Hokkaido Place Test
+from playwright.sync_api import sync_playwright
+import re
 
-on:
-  workflow_dispatch:
+URL = "https://www.kenketsu.jp/ReservationHome"
 
-jobs:
-  browser-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
 
-    steps:
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
+    # =========================================================
+    # 1. ラブラッド予約トップ
+    # =========================================================
+    print("=== 1. ReservationHome ===")
 
-      - name: Install Playwright
-        run: |
-          python -m pip install --upgrade pip
-          pip install playwright
-          python -m playwright install --with-deps chromium
+    page.goto(URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(2000)
 
-      - name: Find Hokkaido donation places
-        run: |
-          python - <<'PY'
-          from playwright.sync_api import sync_playwright
+    print("URL:", page.url)
+    print("TITLE:", page.title())
 
-          with sync_playwright() as p:
+    # =========================================================
+    # 2. 「北海道」をクリック
+    # =========================================================
+    print("\n=== 2. 北海道をクリック ===")
 
-              browser = p.chromium.launch()
+    # 北海道のリンクを直接指定
+    hokkaido_link = page.locator(
+        "#ReservationHome\\:j_id63\\:j_id104\\:0\\:j_id106"
+    )
 
-              page = browser.new_page()
+    print("北海道リンク数:", hokkaido_link.count())
 
-              # =========================================
-              # ① ReservationHome
-              # =========================================
+    hokkaido_link.click()
 
-              page.goto(
-                  "https://www.kenketsu.jp/ReservationHome",
-                  wait_until="networkidle",
-                  timeout=60000
-              )
+    # Ajaxによる画面遷移を待つ
+    page.wait_for_timeout(2000)
 
-              # =========================================
-              # ② 北海道
-              # =========================================
+    print("URL:", page.url)
+    print("TITLE:", page.title())
 
-              links = page.locator("a")
+    # =========================================================
+    # 3. 「献血の予約」をクリック
+    # =========================================================
+    print("\n=== 3. 献血の予約 ===")
 
-              hokkaido_link = None
+    reservation_link = page.get_by_text("献血の予約", exact=True)
 
-              for i in range(links.count()):
+    print("献血の予約リンク数:", reservation_link.count())
 
-                  link = links.nth(i)
+    reservation_link.first.click()
 
-                  try:
-                      text = link.inner_text().strip()
-                  except Exception:
-                      text = ""
+    page.wait_for_timeout(2000)
 
-                  if text == "北海道":
+    print("URL:", page.url)
+    print("TITLE:", page.title())
 
-                      hokkaido_link = link
+    # =========================================================
+    # 4. 「献血予約の開始」をクリック
+    # =========================================================
+    print("\n=== 4. 献血予約の開始 ===")
 
-                      print(
-                          "北海道リンク発見:",
-                          i
-                      )
+    start_link = page.get_by_text("献血予約の開始", exact=True)
 
-                      break
+    print("献血予約の開始リンク数:", start_link.count())
 
-              if hokkaido_link is None:
-                  raise Exception(
-                      "北海道リンクが見つかりません"
-                  )
+    start_link.first.click()
 
-              hokkaido_link.click()
+    page.wait_for_timeout(2000)
 
-              page.wait_for_timeout(3000)
+    print("URL:", page.url)
+    print("TITLE:", page.title())
 
-              # =========================================
-              # ③ 献血の予約
-              # =========================================
+    # =========================================================
+    # 5. 年齢確認画面
+    # =========================================================
+    print("\n=== 5. 年齢確認 ===")
 
-              reservation_link = page.locator(
-                  "a"
-              ).filter(
-                  has_text="献血の予約"
-              ).first
+    # 男性を選択
+    male = page.locator("#selectedmale")
 
-              reservation_link.click()
+    print("男性ボタン数:", male.count())
 
-              page.wait_for_timeout(3000)
+    male.click()
 
-              # =========================================
-              # ④ 献血予約の開始
-              # =========================================
+    # 生年月日
+    selects = page.locator("select")
 
-              start_link = page.locator(
-                  "a"
-              ).filter(
-                  has_text="献血予約の開始"
-              ).first
+    print("select数:", selects.count())
 
-              start_link.click()
-
-              page.wait_for_timeout(3000)
+    # 年
+    selects.nth(0).select_option(label="1990")
 
-              # =========================================
-              # ⑤ 性別：男性
-              # =========================================
+    # 月
+    selects.nth(1).select_option(label="1")
 
-              page.locator(
-                  "#selectedmale"
-              ).click()
-
-              page.wait_for_timeout(500)
-
-              # =========================================
-              # ⑥ 生年月日
-              # =========================================
-
-              selects = page.locator(
-                  "select"
-              )
-
-              selects.nth(0).select_option(
-                  "1990"
-              )
-
-              selects.nth(1).select_option(
-                  "1"
-              )
-
-              selects.nth(2).select_option(
-                  "1"
-              )
-
-              page.wait_for_timeout(500)
-
-              # =========================================
-              # ⑦ 次へ
-              # =========================================
-
-              page.locator(
-                  "#Blooddonationageform\\:j_id41\\:nextButton"
-              ).click(
-                  force=True
-              )
-
-              page.wait_for_timeout(5000)
-
-              print("")
-              print(
-                  "=== RESERVATION SEARCH PAGE ==="
-              )
-
-              print(
-                  "URL:",
-                  page.url
-              )
-
-              print(
-                  "TITLE:",
-                  page.title()
-              )
-
-              # =========================================
-              # ⑧ 現在のリンクを調査
-              # =========================================
-
-              print("")
-              print(
-                  "=== ALL LINKS ==="
-              )
-
-              links = page.locator("a")
-
-              for i in range(
-                  links.count()
-              ):
-
-                  link = links.nth(i)
-
-                  try:
-                      text = (
-                          link.inner_text()
-                          .strip()
-                      )
-                  except Exception:
-                      text = ""
-
-                  href = link.get_attribute(
-                      "href"
-                  )
-
-                  if text:
-
-                      print(
-                          "LINK",
-                          i,
-                          "TEXT:",
-                          text,
-                          "HREF:",
-                          href
-                      )
-
-              # =========================================
-              # ⑨ 北海道関連リンクを調査
-              # =========================================
-
-              print("")
-              print(
-                  "=== HOKKAIDO RELATED ==="
-              )
-
-              for i in range(
-                  links.count()
-              ):
-
-                  link = links.nth(i)
-
-                  try:
-                      text = (
-                          link.inner_text()
-                          .strip()
-                      )
-                  except Exception:
-                      text = ""
-
-                  if "北海道" in text:
-
-                      print(
-                          "HOKKAIDO",
-                          i,
-                          "TEXT:",
-                          text,
-                          "HREF:",
-                          link.get_attribute(
-                              "href"
-                          ),
-                          "HTML:",
-                          link.evaluate(
-                              "(el) => el.outerHTML"
-                          )
-                      )
-
-              # =========================================
-              # ⑩ ページ本文
-              # =========================================
-
-              print("")
-              print(
-                  "=== PAGE TEXT ==="
-              )
-
-              print(
-                  page.locator(
-                      "body"
-                  ).inner_text()[:30000]
-              )
-
-              browser.close()
-
-          PY
+    # 日
+    selects.nth(2).select_option(label="1")
+
+    print("生年月日: 1990年1月1日")
+    print("性別: 男性")
+
+    # =========================================================
+    # 6. 「次へ」
+    # =========================================================
+    print("\n=== 6. 年齢確認「次へ」 ===")
+
+    next_button = page.locator(
+        "#Blooddonationageform\\:j_id41\\:nextButton"
+    )
+
+    print("次へボタン数:", next_button.count())
+
+    # JavaScript/Ajaxボタンなので force=True
+    next_button.click(force=True)
+
+    page.wait_for_timeout(3000)
+
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+
+    # =========================================================
+    # 7. 年齢確認後の画面
+    # =========================================================
+    print("\n=== 7. 年齢確認後 ===")
+
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+
+    # =========================================================
+    # 8. 北海道をクリック
+    # =========================================================
+    print("\n=== 8. 北海道をクリック ===")
+
+    hokkaido_after = page.locator(
+        "#ReservationHome\\:j_id63\\:j_id104\\:0\\:j_id106"
+    )
+
+    print("北海道リンク数:", hokkaido_after.count())
+
+    if hokkaido_after.count() == 0:
+        print("❌ 北海道リンクが見つかりません")
+
+        print("\n=== 現在のリンク一覧 ===")
+
+        links = page.locator("a")
+
+        for i in range(links.count()):
+            try:
+                text = links.nth(i).inner_text().strip()
+                href = links.nth(i).get_attribute("href")
+
+                if text:
+                    print(
+                        f"LINK {i}: TEXT={text} HREF={href}"
+                    )
+            except Exception:
+                pass
+
+    else:
+        hokkaido_after.click()
+
+        # Ajaxによる更新を待つ
+        page.wait_for_timeout(3000)
+
+        print("北海道クリック後")
+        print("URL:", page.url)
+        print("TITLE:", page.title())
+
+    # =========================================================
+    # 9. 北海道クリック後の全リンクを確認
+    # =========================================================
+    print("\n=== 9. ALL LINKS AFTER HOKKAIDO ===")
+
+    links = page.locator("a")
+
+    print("リンク総数:", links.count())
+
+    for i in range(links.count()):
+        try:
+            text = links.nth(i).inner_text().strip()
+            href = links.nth(i).get_attribute("href")
+
+            if text:
+                print(
+                    f"LINK {i} TEXT: {text} HREF: {href}"
+                )
+
+        except Exception:
+            pass
+
+    # =========================================================
+    # 10. 北海道関連の施設名を抽出
+    # =========================================================
+    print("\n=== 10. HOKKAIDO / FACILITY RELATED ===")
+
+    body_text = page.locator("body").inner_text()
+
+    keywords = [
+        "北海道",
+        "献血ルーム",
+        "血液センター",
+        "大通",
+        "アスティ",
+        "新さっぽろ",
+        "北彩都",
+        "帯広",
+    ]
+
+    for keyword in keywords:
+        if keyword in body_text:
+            print(f"FOUND: {keyword}")
+
+    # =========================================================
+    # 11. ページ全文
+    # =========================================================
+    print("\n=== 11. PAGE TEXT AFTER HOKKAIDO ===")
+
+    print(body_text)
+
+    # =========================================================
+    # 12. スクリーンショット
+    # =========================================================
+    page.screenshot(
+        path="lalblood_hokkaido_test.png",
+        full_page=True
+    )
+
+    print("\n=== TEST FINISHED ===")
+    print("スクリーンショット: lalblood_hokkaido_test.png")
+
+    browser.close()
