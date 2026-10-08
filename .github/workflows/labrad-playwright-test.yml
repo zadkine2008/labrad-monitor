@@ -1,4 +1,4 @@
-name: LaBlood Age Check Test 2
+name: LaBlood Hokkaido Place Test
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: Test age confirmation
+      - name: Find Hokkaido donation places
         run: |
           python - <<'PY'
           from playwright.sync_api import sync_playwright
@@ -106,158 +106,53 @@ jobs:
 
               page.wait_for_timeout(3000)
 
-              print("")
-              print("=== AGE CHECK PAGE ===")
-              print("URL:", page.url)
-              print("TITLE:", page.title())
-
               # =========================================
-              # ⑤ 男性を選択
+              # ⑤ 性別：男性
               # =========================================
 
-              print("")
-              print("=== SELECT MALE ===")
-
-              male_label = page.locator(
+              page.locator(
                   "#selectedmale"
-              )
+              ).click()
 
-              print(
-                  "男性ラベル数:",
-                  male_label.count()
-              )
-
-              if male_label.count() == 0:
-                  raise Exception(
-                      "男性ラベルが見つかりません"
-                  )
-
-              print(
-                  "男性ラベルHTML:",
-                  male_label.evaluate(
-                      "(el) => el.outerHTML"
-                  )
-              )
-
-              male_label.click()
-
-              page.wait_for_timeout(1000)
-
-              print(
-                  "男性を選択しました"
-              )
-
-              # hidden項目を確認
-              selected_male = page.locator(
-                  "#Blooddonationageform\\:j_id41\\:selectedMale"
-              )
-
-              print(
-                  "selectedMale value:",
-                  selected_male.input_value()
-              )
+              page.wait_for_timeout(500)
 
               # =========================================
-              # ⑥ 生年月日を設定
+              # ⑥ 生年月日
               # =========================================
-
-              print("")
-              print("=== SELECT BIRTH DATE ===")
 
               selects = page.locator(
                   "select"
               )
 
-              print(
-                  "select数:",
-                  selects.count()
-              )
-
-              if selects.count() != 3:
-                  raise Exception(
-                      "生年月日のselectが3つではありません"
-                  )
-
-              # 年
-              year_select = selects.nth(0)
-
-              # 月
-              month_select = selects.nth(1)
-
-              # 日
-              day_select = selects.nth(2)
-
-              year_select.select_option(
+              selects.nth(0).select_option(
                   "1990"
               )
 
-              month_select.select_option(
+              selects.nth(1).select_option(
                   "1"
               )
 
-              day_select.select_option(
+              selects.nth(2).select_option(
                   "1"
               )
 
-              page.wait_for_timeout(1000)
-
-              print(
-                  "生年月日:",
-                  year_select.input_value(),
-                  "/",
-                  month_select.input_value(),
-                  "/",
-                  day_select.input_value()
-              )
+              page.wait_for_timeout(500)
 
               # =========================================
-              # ⑦ 「次へ」の状態を確認
+              # ⑦ 次へ
               # =========================================
 
-              print("")
-              print("=== NEXT BUTTON ===")
-
-              next_button = page.locator(
+              page.locator(
                   "#Blooddonationageform\\:j_id41\\:nextButton"
-              )
-
-              print(
-                  "次へボタン数:",
-                  next_button.count()
-              )
-
-              if next_button.count() == 0:
-                  raise Exception(
-                      "次へボタンが見つかりません"
-                  )
-
-              print(
-                  "次へHTML:",
-                  next_button.evaluate(
-                      "(el) => el.outerHTML"
-                  )
-              )
-
-              # =========================================
-              # ⑧ 次へをクリック
-              # =========================================
-
-              print("")
-              print("=== CLICK NEXT ===")
-
-              next_button.click(
+              ).click(
                   force=True
               )
 
               page.wait_for_timeout(5000)
 
-              # =========================================
-              # ⑨ 結果
-              # =========================================
-
               print("")
               print(
-                  "=== AFTER NEXT CLICK ==="
+                  "=== RESERVATION SEARCH PAGE ==="
               )
 
               print(
@@ -270,19 +165,100 @@ jobs:
                   page.title()
               )
 
+              # =========================================
+              # ⑧ 現在のリンクを調査
+              # =========================================
+
               print("")
-              print("=== PAGE TEXT ===")
+              print(
+                  "=== ALL LINKS ==="
+              )
+
+              links = page.locator("a")
+
+              for i in range(
+                  links.count()
+              ):
+
+                  link = links.nth(i)
+
+                  try:
+                      text = (
+                          link.inner_text()
+                          .strip()
+                      )
+                  except Exception:
+                      text = ""
+
+                  href = link.get_attribute(
+                      "href"
+                  )
+
+                  if text:
+
+                      print(
+                          "LINK",
+                          i,
+                          "TEXT:",
+                          text,
+                          "HREF:",
+                          href
+                      )
+
+              # =========================================
+              # ⑨ 北海道関連リンクを調査
+              # =========================================
+
+              print("")
+              print(
+                  "=== HOKKAIDO RELATED ==="
+              )
+
+              for i in range(
+                  links.count()
+              ):
+
+                  link = links.nth(i)
+
+                  try:
+                      text = (
+                          link.inner_text()
+                          .strip()
+                      )
+                  except Exception:
+                      text = ""
+
+                  if "北海道" in text:
+
+                      print(
+                          "HOKKAIDO",
+                          i,
+                          "TEXT:",
+                          text,
+                          "HREF:",
+                          link.get_attribute(
+                              "href"
+                          ),
+                          "HTML:",
+                          link.evaluate(
+                              "(el) => el.outerHTML"
+                          )
+                      )
+
+              # =========================================
+              # ⑩ ページ本文
+              # =========================================
+
+              print("")
+              print(
+                  "=== PAGE TEXT ==="
+              )
 
               print(
                   page.locator(
                       "body"
                   ).inner_text()[:30000]
               )
-
-              print("")
-              print("=== CURRENT URL ===")
-
-              print(page.url)
 
               browser.close()
 
