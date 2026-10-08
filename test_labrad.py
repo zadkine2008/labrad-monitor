@@ -1,0 +1,491 @@
+from playwright.sync_api import sync_playwright
+BASE_URL = "https://www.kenketsu.jp/ReservationHome"
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page(
+        viewport={"width": 1280, "height": 2000},
+        locale="ja-JP"
+    )
+    # ==========================================
+    # 1. ReservationHome
+    # ==========================================
+    print("=== 1. ReservationHome ===")
+    page.goto(
+        BASE_URL,
+        wait_until="domcontentloaded",
+        timeout=60000
+    )
+    page.wait_for_timeout(3000)
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+    # ==========================================
+    # 2. 最初の北海道を選択
+    # ==========================================
+    print()
+    print("=== 2. 北海道を選択 ===")
+    hokkaido = page.locator("a").filter(
+        has_text="北海道"
+    ).first
+    print(
+        "北海道リンク数:",
+        page.locator("a").filter(
+            has_text="北海道"
+        ).count()
+    )
+    hokkaido.click()
+    page.wait_for_timeout(3000)
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+    # ==========================================
+    # 3. 「献血の予約」を選択
+    # ==========================================
+    print()
+    print("=== 3. 「献血の予約」を選択 ===")
+    reserve = page.locator("a").filter(
+        has_text="献血の予約"
+    ).first
+    print(
+        "献血の予約リンク数:",
+        page.locator("a").filter(
+            has_text="献血の予約"
+        ).count()
+    )
+    reserve.click()
+    page.wait_for_timeout(3000)
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+    # ==========================================
+    # 4. 「献血予約の開始」を選択
+    # ==========================================
+    print()
+    print("=== 4. 「献血予約の開始」を選択 ===")
+    start = page.locator("a").filter(
+        has_text="献血予約の開始"
+    ).first
+    print(
+        "献血予約の開始リンク数:",
+        page.locator("a").filter(
+            has_text="献血予約の開始"
+        ).count()
+    )
+    start.click()
+    page.wait_for_timeout(3000)
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+    # ==========================================
+    # 5. 年齢確認
+    # ==========================================
+    print()
+    print("=== 5. 年齢確認 ===")
+    # テスト用の性別
+    page.locator("#selectedmale").click()
+    # テスト用の生年月日
+    # 1990年1月1日
+    page.locator("select").nth(0).select_option("1990")
+    page.locator("select").nth(1).select_option("1")
+    page.locator("select").nth(2).select_option("1")
+    page.wait_for_timeout(500)
+    next_button = page.locator(
+        "#Blooddonationageform\\:j_id41\\:nextButton"
+    )
+    print(
+        "次へボタン数:",
+        next_button.count()
+    )
+    next_button.click(force=True)
+    page.wait_for_timeout(4000)
+    print("URL:", page.url)
+    print("TITLE:", page.title())
+    # ==========================================
+    # 6. 年齢確認後の北海道を選択
+    # ==========================================
+    print()
+    print("=== 6. 年齢確認後の北海道を選択 ===")
+    hokkaido_after_age = page.locator(
+        "a"
+    ).filter(
+        has_text="北海道"
+    ).first
+    print(
+        "北海道リンク数:",
+        page.locator("a").filter(
+            has_text="北海道"
+        ).count()
+    )
+    print("北海道リンクHTML:")
+    try:
+        print(
+            hokkaido_after_age.evaluate(
+                "(el) => el.outerHTML"
+            )
+        )
+    except Exception as e:
+        print(
+            "HTML取得失敗:",
+            e
+        )
+    hokkaido_after_age.click()
+    page.wait_for_timeout(4000)
+    print(
+        "URL:",
+        page.url
+    )
+    print(
+        "TITLE:",
+        page.title()
+    )
+    # ==========================================
+    # 7. 北海道の施設一覧
+    # ==========================================
+    print()
+    print("=== 7. 北海道の施設一覧 ===")
+    print(
+        page.locator("body").inner_text()
+    )
+    # ==========================================
+    # 8. 「予約する」リンク
+    # ==========================================
+    print()
+    print("=== 8. 予約するリンク ===")
+    reserve_links = page.locator(
+        "a"
+    ).filter(
+        has_text="予約する"
+    )
+    count = reserve_links.count()
+    print(
+        "予約するリンク数:",
+        count
+    )
+    if count == 0:
+        print(
+            "ERROR: 予約するリンクが見つかりません"
+        )
+        print()
+        print(
+            "現在のURL:",
+            page.url
+        )
+        print()
+        print(
+            "現在のページ本文:"
+        )
+        print(
+            page.locator("body").inner_text()
+        )
+        browser.close()
+        raise SystemExit(1)
+    # ==========================================
+    # 9. 各施設を表示
+    # ==========================================
+    print()
+    print("=== 9. 各施設の予約リンク ===")
+    for i in range(count):
+        link = reserve_links.nth(i)
+        print()
+        print("--------------------------------")
+        print(
+            "予約する #",
+            i
+        )
+        print("--------------------------------")
+        try:
+            card = link.locator(
+                "xpath=ancestor::li[contains(@class,'mod-list-room__list')]"
+            )
+            print("施設情報:")
+            print(
+                card.inner_text()
+            )
+        except Exception as e:
+            print(
+                "施設情報取得失敗:",
+                e
+            )
+        try:
+            print("HTML:")
+            print(
+                link.evaluate(
+                    "(el) => el.outerHTML"
+                )
+            )
+        except Exception as e:
+            print(
+                "HTML取得失敗:",
+                e
+            )
+    # ==========================================
+    # 10. 北海道赤十字血液センター
+    # ==========================================
+    print()
+    print(
+        "=== 10. 北海道赤十字血液センターを選択 ==="
+    )
+    target_card = page.locator(
+        "li.mod-list-room__list"
+    ).filter(
+        has_text="北海道赤十字血液センター"
+    ).first
+    print(
+        "対象施設カード数:",
+        page.locator(
+            "li.mod-list-room__list"
+        ).filter(
+            has_text="北海道赤十字血液センター"
+        ).count()
+    )
+    print()
+    print("対象施設の内容:")
+    print(
+        target_card.inner_text()
+    )
+    # ==========================================
+    # 11. 血漿成分献血
+    # ==========================================
+    print()
+    print(
+        "=== 11. 血漿成分献血を確認 ==="
+    )
+    plasma = target_card.locator(
+        ".mod-icon-dnt-type-plasma.is-on"
+    )
+    print(
+        "血漿成分献血 is-on:",
+        plasma.count()
+    )
+    # ==========================================
+    # 12. 「予約する」をクリック
+    # ==========================================
+    print()
+    print(
+        "=== 12. 「予約する」をクリック ==="
+    )
+    target_reserve = target_card.locator(
+        "a"
+    ).filter(
+        has_text="予約する"
+    ).first
+    print(
+        "予約リンク数:",
+        target_card.locator(
+            "a"
+        ).filter(
+            has_text="予約する"
+        ).count()
+    )
+    print()
+    print("予約リンクHTML:")
+    print(
+        target_reserve.evaluate(
+            "(el) => el.outerHTML"
+        )
+    )
+    print()
+    print(
+        "予約リンクをクリックします..."
+    )
+    target_reserve.click()
+    page.wait_for_timeout(5000)
+    # ==========================================
+    # 13. 予約詳細画面
+    # ==========================================
+    print()
+    print(
+        "=== 13. 予約詳細画面 ==="
+    )
+    print(
+        "URL:",
+        page.url
+    )
+    print(
+        "TITLE:",
+        page.title()
+    )
+    # ==========================================
+    # 14. ページ本文
+    # ==========================================
+    print()
+    print(
+        "=== 14. PAGE TEXT ==="
+    )
+    print(
+        page.locator("body").inner_text()
+    )
+    # ==========================================
+    # 15. 全リンク
+    # ==========================================
+    print()
+    print(
+        "=== 15. ALL LINKS ==="
+    )
+    links = page.locator("a")
+    print(
+        "リンク総数:",
+        links.count()
+    )
+    for i in range(
+        links.count()
+    ):
+        link = links.nth(i)
+        try:
+            text = link.inner_text().strip()
+        except:
+            text = ""
+        if text:
+            try:
+                href = link.get_attribute(
+                    "href"
+                )
+            except:
+                href = None
+            print(
+                f"LINK {i}: "
+                f"TEXT={text} "
+                f"HREF={href}"
+            )
+    # ==========================================
+    # 16. SELECT
+    # ==========================================
+    print()
+    print(
+        "=== 16. SELECT ==="
+    )
+    selects = page.locator(
+        "select"
+    )
+    print(
+        "select総数:",
+        selects.count()
+    )
+    for i in range(
+        selects.count()
+    ):
+        sel = selects.nth(i)
+        print()
+        print(
+            "--------------------------------"
+        )
+        print(
+            "SELECT",
+            i
+        )
+        print(
+            "--------------------------------"
+        )
+        try:
+            print(
+                "NAME:",
+                sel.get_attribute(
+                    "name"
+                )
+            )
+            print(
+                "ID:",
+                sel.get_attribute(
+                    "id"
+                )
+            )
+            print(
+                "VALUE:",
+                sel.input_value()
+            )
+            print(
+                sel.evaluate(
+                    "(el) => el.outerHTML"
+                )
+            )
+        except Exception as e:
+            print(
+                "取得失敗:",
+                e
+            )
+    # ==========================================
+    # 17. INPUT / BUTTON
+    # ==========================================
+    print()
+    print(
+        "=== 17. INPUT / BUTTON ==="
+    )
+    elements = page.locator(
+        "input, button"
+    )
+    print(
+        "input/button総数:",
+        elements.count()
+    )
+    for i in range(
+        elements.count()
+    ):
+        el = elements.nth(i)
+        try:
+            print(
+                "ELEMENT",
+                i,
+                "TAG=",
+                el.evaluate(
+                    "(e) => e.tagName"
+                ),
+                "TEXT=",
+                el.inner_text(),
+                "NAME=",
+                el.get_attribute(
+                    "name"
+                ),
+                "ID=",
+                el.get_attribute(
+                    "id"
+                ),
+                "VALUE=",
+                el.get_attribute(
+                    "value"
+                )
+            )
+        except Exception as e:
+            print(
+                "ELEMENT",
+                i,
+                "取得失敗:",
+                e
+            )
+    # ==========================================
+    # 18. 血漿成分献血
+    # ==========================================
+    print()
+    print(
+        "=== 18. 「血漿成分献血」 ==="
+    )
+    plasma_all = page.locator(
+        "text=血漿成分献血"
+    )
+    print(
+        "血漿成分献血要素数:",
+        plasma_all.count()
+    )
+    for i in range(
+        plasma_all.count()
+    ):
+        el = plasma_all.nth(i)
+        try:
+            print()
+            print(
+                "PLASMA",
+                i
+            )
+            print(
+                el.evaluate(
+                    "(e) => e.outerHTML"
+                )
+            )
+        except Exception as e:
+            print(
+                "取得失敗:",
+                e
+            )
+    # ==========================================
+    # 19. 完了
+    # ==========================================
+    print()
+    print(
+        "=== 19. FINISHED ==="
+    )
+    browser.close()
