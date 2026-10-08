@@ -1,4 +1,4 @@
-name: LaBlood Hokkaido Place Test
+name: LaBlood Hokkaido Facility Test
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Run LaBlood test
+      - name: Run LaBlood facility test
         run: |
           cat > test.py <<'PYTHON'
           from playwright.sync_api import sync_playwright
@@ -33,21 +33,39 @@ jobs:
               browser = p.chromium.launch(headless=True)
               page = browser.new_page()
 
+              # =====================================================
+              # 1. ラブラッド予約トップ
+              # =====================================================
               print("=== 1. ReservationHome ===")
 
-              page.goto(URL, wait_until="domcontentloaded")
+              page.goto(
+                  URL,
+                  wait_until="domcontentloaded"
+              )
+
               page.wait_for_timeout(2000)
 
               print("URL:", page.url)
               print("TITLE:", page.title())
 
+              # =====================================================
+              # 2. 北海道をクリック
+              # =====================================================
               print("\n=== 2. 北海道をクリック ===")
 
               hokkaido_link = page.locator(
                   "#ReservationHome\\:j_id63\\:j_id104\\:0\\:j_id106"
               )
 
-              print("北海道リンク数:", hokkaido_link.count())
+              print(
+                  "北海道リンク数:",
+                  hokkaido_link.count()
+              )
+
+              if hokkaido_link.count() == 0:
+                  print("❌ 北海道リンクが見つかりません")
+                  browser.close()
+                  raise SystemExit(1)
 
               hokkaido_link.click()
 
@@ -56,6 +74,9 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
+              # =====================================================
+              # 3. 「献血の予約」をクリック
+              # =====================================================
               print("\n=== 3. 献血の予約 ===")
 
               reservation_link = page.get_by_text(
@@ -68,6 +89,11 @@ jobs:
                   reservation_link.count()
               )
 
+              if reservation_link.count() == 0:
+                  print("❌ 「献血の予約」が見つかりません")
+                  browser.close()
+                  raise SystemExit(1)
+
               reservation_link.first.click()
 
               page.wait_for_timeout(2000)
@@ -75,6 +101,9 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
+              # =====================================================
+              # 4. 「献血予約の開始」をクリック
+              # =====================================================
               print("\n=== 4. 献血予約の開始 ===")
 
               start_link = page.get_by_text(
@@ -87,6 +116,11 @@ jobs:
                   start_link.count()
               )
 
+              if start_link.count() == 0:
+                  print("❌ 「献血予約の開始」が見つかりません")
+                  browser.close()
+                  raise SystemExit(1)
+
               start_link.first.click()
 
               page.wait_for_timeout(2000)
@@ -94,25 +128,53 @@ jobs:
               print("URL:", page.url)
               print("TITLE:", page.title())
 
+              # =====================================================
+              # 5. 年齢確認
+              # =====================================================
               print("\n=== 5. 年齢確認 ===")
 
               male = page.locator("#selectedmale")
 
-              print("男性ボタン数:", male.count())
+              print(
+                  "男性ボタン数:",
+                  male.count()
+              )
+
+              if male.count() == 0:
+                  print("❌ 男性ボタンが見つかりません")
+                  browser.close()
+                  raise SystemExit(1)
 
               male.click()
 
               selects = page.locator("select")
 
-              print("select数:", selects.count())
+              print(
+                  "select数:",
+                  selects.count()
+              )
 
+              if selects.count() < 3:
+                  print("❌ 生年月日のselectが3つ見つかりません")
+                  browser.close()
+                  raise SystemExit(1)
+
+              # テスト用の生年月日
               selects.nth(0).select_option(label="1990")
               selects.nth(1).select_option(label="1")
               selects.nth(2).select_option(label="1")
 
-              print("生年月日: 1990年1月1日")
-              print("性別: 男性")
+              print(
+                  "生年月日: 1990年1月1日"
+              )
 
+              print(
+                  "性別: 男性"
+              )
+
+              # =====================================================
+              # 6. 年齢確認「次へ」
+              # =====================================================
               print("\n=== 6. 年齢確認「次へ」 ===")
 
               next_button = page.locator(
@@ -124,19 +186,31 @@ jobs:
                   next_button.count()
               )
 
-              next_button.click(force=True)
+              if next_button.count() == 0:
+                  print("❌ 次へボタンが見つかりません")
+                  browser.close()
+                  raise SystemExit(1)
+
+              next_button.click(
+                  force=True
+              )
 
               page.wait_for_timeout(3000)
 
-              print("URL:", page.url)
-              print("TITLE:", page.title())
+              print(
+                  "URL:",
+                  page.url
+              )
 
-              print("\n=== 7. 年齢確認後 ===")
+              print(
+                  "TITLE:",
+                  page.title()
+              )
 
-              print("URL:", page.url)
-              print("TITLE:", page.title())
-
-              print("\n=== 8. 北海道をクリック ===")
+              # =====================================================
+              # 7. 北海道をクリック
+              # =====================================================
+              print("\n=== 7. 北海道をクリック ===")
 
               hokkaido_after = page.locator(
                   "#ReservationHome\\:j_id63\\:j_id104\\:0\\:j_id106"
@@ -154,135 +228,377 @@ jobs:
                   )
 
                   print(
-                      "\n=== 現在のリンク一覧 ==="
-                  )
-
-                  links = page.locator("a")
-
-                  for i in range(links.count()):
-                      try:
-                          text = (
-                              links.nth(i)
-                              .inner_text()
-                              .strip()
-                          )
-
-                          href = (
-                              links.nth(i)
-                              .get_attribute("href")
-                          )
-
-                          if text:
-                              print(
-                                  f"LINK {i}: "
-                                  f"TEXT={text} "
-                                  f"HREF={href}"
-                              )
-
-                      except Exception:
-                          pass
-
-              else:
-
-                  hokkaido_after.click()
-
-                  page.wait_for_timeout(3000)
-
-                  print(
-                      "北海道クリック後"
+                      "\n=== 現在のページ本文 ==="
                   )
 
                   print(
-                      "URL:",
-                      page.url
+                      page.locator("body").inner_text()
                   )
 
-                  print(
-                      "TITLE:",
-                      page.title()
-                  )
+                  browser.close()
+                  raise SystemExit(1)
+
+              hokkaido_after.click()
+
+              # Ajaxで施設一覧が表示されるまで待つ
+              page.wait_for_timeout(3000)
 
               print(
-                  "\n=== 9. ALL LINKS AFTER HOKKAIDO ==="
+                  "北海道クリック後URL:",
+                  page.url
               )
-
-              links = page.locator("a")
 
               print(
-                  "リンク総数:",
-                  links.count()
+                  "北海道クリック後TITLE:",
+                  page.title()
               )
 
-              for i in range(links.count()):
-
-                  try:
-
-                      text = (
-                          links.nth(i)
-                          .inner_text()
-                          .strip()
-                      )
-
-                      href = (
-                          links.nth(i)
-                          .get_attribute("href")
-                      )
-
-                      if text:
-                          print(
-                              f"LINK {i} "
-                              f"TEXT: {text} "
-                              f"HREF: {href}"
-                          )
-
-                  except Exception:
-                      pass
-
+              # =====================================================
+              # 8. 施設名が表示されているか確認
+              # =====================================================
               print(
-                  "\n=== 10. HOKKAIDO / FACILITY RELATED ==="
+                  "\n=== 8. 施設一覧確認 ==="
               )
+
+              facilities = [
+                  "北海道赤十字血液センター",
+                  "大通献血ルーム",
+                  "アスティ献血ルーム",
+                  "新さっぽろ献血ルーム",
+                  "北彩都あさひかわ献血ルーム",
+                  "帯広すずらん献血ルーム",
+              ]
 
               body_text = (
                   page.locator("body")
                   .inner_text()
               )
 
-              keywords = [
-                  "北海道",
-                  "献血ルーム",
-                  "血液センター",
-                  "大通",
-                  "アスティ",
-                  "新さっぽろ",
-                  "北彩都",
-                  "帯広",
-              ]
+              for facility in facilities:
 
-              for keyword in keywords:
-
-                  if keyword in body_text:
+                  if facility in body_text:
                       print(
-                          f"FOUND: {keyword}"
+                          "FOUND FACILITY:",
+                          facility
+                      )
+                  else:
+                      print(
+                          "NOT FOUND FACILITY:",
+                          facility
                       )
 
+              # =====================================================
+              # 9. 「予約する」を調査
+              # =====================================================
               print(
-                  "\n=== 11. PAGE TEXT AFTER HOKKAIDO ==="
+                  "\n=== 9. 予約する要素のHTML ==="
               )
 
-              print(body_text)
+              reserve_buttons = page.get_by_text(
+                  "予約する",
+                  exact=True
+              )
+
+              print(
+                  "「予約する」要素数:",
+                  reserve_buttons.count()
+              )
+
+              for i in range(
+                  reserve_buttons.count()
+              ):
+
+                  try:
+
+                      element = reserve_buttons.nth(i)
+
+                      print(
+                          "\n--------------------------------"
+                      )
+
+                      print(
+                          f"予約する #{i}"
+                      )
+
+                      print(
+                          "--------------------------------"
+                      )
+
+                      print(
+                          "TAG:",
+                          element.evaluate(
+                              "(el) => el.tagName"
+                          )
+                      )
+
+                      print(
+                          "TEXT:",
+                          element.inner_text().strip()
+                      )
+
+                      print(
+                          "OUTER HTML:"
+                      )
+
+                      print(
+                          element.evaluate(
+                              "(el) => el.outerHTML"
+                          )
+                      )
+
+                      print(
+                          "\nPARENT HTML:"
+                      )
+
+                      print(
+                          element.evaluate(
+                              "(el) => el.parentElement.outerHTML"
+                          )
+                      )
+
+                  except Exception as e:
+
+                      print(
+                          f"予約する #{i} "
+                          f"の調査でエラー:",
+                          e
+                      )
+
+              # =====================================================
+              # 10. 各施設のHTMLを調査
+              # =====================================================
+              print(
+                  "\n=== 10. 施設名のHTML ==="
+              )
+
+              for facility in facilities:
+
+                  print(
+                      "\n================================"
+                  )
+
+                  print(
+                      "FACILITY:",
+                      facility
+                  )
+
+                  print(
+                      "================================"
+                  )
+
+                  locator = page.get_by_text(
+                      facility,
+                      exact=True
+                  )
+
+                  print(
+                      "要素数:",
+                      locator.count()
+                  )
+
+                  if locator.count() > 0:
+
+                      try:
+
+                          element = locator.first
+
+                          print(
+                              "TAG:",
+                              element.evaluate(
+                                  "(el) => el.tagName"
+                              )
+                          )
+
+                          print(
+                              "OUTER HTML:"
+                          )
+
+                          print(
+                              element.evaluate(
+                                  "(el) => el.outerHTML"
+                              )
+                          )
+
+                          print(
+                              "\nPARENT HTML:"
+                          )
+
+                          print(
+                              element.evaluate(
+                                  "(el) => el.parentElement.outerHTML"
+                              )
+                          )
+
+                      except Exception as e:
+
+                          print(
+                              "HTML取得エラー:",
+                              e
+                          )
+
+              # =====================================================
+              # 11. 「血漿成分献血」のHTMLを調査
+              # =====================================================
+              print(
+                  "\n=== 11. 血漿成分献血のHTML ==="
+              )
+
+              plasma = page.get_by_text(
+                  "血漿成分献血",
+                  exact=True
+              )
+
+              print(
+                  "血漿成分献血の要素数:",
+                  plasma.count()
+              )
+
+              for i in range(
+                  plasma.count()
+              ):
+
+                  try:
+
+                      element = plasma.nth(i)
+
+                      print(
+                          "\n--------------------------------"
+                      )
+
+                      print(
+                          f"血漿成分献血 #{i}"
+                      )
+
+                      print(
+                          "--------------------------------"
+                      )
+
+                      print(
+                          "TAG:",
+                          element.evaluate(
+                              "(el) => el.tagName"
+                          )
+                      )
+
+                      print(
+                          "OUTER HTML:"
+                      )
+
+                      print(
+                          element.evaluate(
+                              "(el) => el.outerHTML"
+                          )
+                      )
+
+                      print(
+                          "\nPARENT HTML:"
+                      )
+
+                      print(
+                          element.evaluate(
+                              "(el) => el.parentElement.outerHTML"
+                          )
+                      )
+
+                  except Exception as e:
+
+                      print(
+                          f"血漿成分献血 #{i} "
+                          f"の調査でエラー:",
+                          e
+                      )
+
+              # =====================================================
+              # 12. ページ内のボタン・inputを調査
+              # =====================================================
+              print(
+                  "\n=== 12. BUTTON / INPUT ==="
+              )
+
+              buttons = page.locator(
+                  "button, input"
+              )
+
+              print(
+                  "button/input総数:",
+                  buttons.count()
+              )
+
+              for i in range(
+                  buttons.count()
+              ):
+
+                  try:
+
+                      element = buttons.nth(i)
+
+                      tag = element.evaluate(
+                          "(el) => el.tagName"
+                      )
+
+                      text = ""
+
+                      try:
+                          text = (
+                              element.inner_text()
+                              .strip()
+                          )
+                      except:
+                          pass
+
+                      name = element.get_attribute(
+                          "name"
+                      )
+
+                      element_id = element.get_attribute(
+                          "id"
+                      )
+
+                      value = element.get_attribute(
+                          "value"
+                      )
+
+                      print(
+                          f"ELEMENT {i}: "
+                          f"TAG={tag} "
+                          f"TEXT={text} "
+                          f"NAME={name} "
+                          f"ID={element_id} "
+                          f"VALUE={value}"
+                      )
+
+                  except Exception:
+                      pass
+
+              # =====================================================
+              # 13. ページ本文
+              # =====================================================
+              print(
+                  "\n=== 13. PAGE TEXT ==="
+              )
+
+              print(
+                  body_text
+              )
+
+              # =====================================================
+              # 14. スクリーンショット
+              # =====================================================
+              print(
+                  "\n=== 14. SCREENSHOT ==="
+              )
 
               page.screenshot(
-                  path="lalblood_hokkaido_test.png",
+                  path="lalblood_hokkaido_facility.png",
                   full_page=True
               )
 
               print(
-                  "\n=== TEST FINISHED ==="
+                  "スクリーンショット保存完了"
               )
 
               print(
-                  "スクリーンショット: "
-                  "lalblood_hokkaido_test.png"
+                  "\n=== TEST FINISHED ==="
               )
 
               browser.close()
@@ -290,10 +606,13 @@ jobs:
 
           python test.py
 
+      # ==========================================================
+      # スクリーンショットを保存
+      # ==========================================================
       - name: Upload screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lalblood-hokkaido-test
-          path: lalblood_hokkaido_test.png
+          name: lalblood-hokkaido-facility-test
+          path: lalblood_hokkaido_facility.png
           if-no-files-found: ignore
