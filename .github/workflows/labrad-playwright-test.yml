@@ -1,4 +1,4 @@
-name: LaBlood Hokkaido Facility Test
+name: LaBlood Reservation Detail Test
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -22,597 +22,322 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
-      - name: Run LaBlood facility test
+      - name: Run LaBlood test
         run: |
-          cat > test.py <<'PYTHON'
+          cat > test_labrad.py <<'PY'
           from playwright.sync_api import sync_playwright
 
-          URL = "https://www.kenketsu.jp/ReservationHome"
+          BASE_URL = "https://www.kenketsu.jp/ReservationHome"
 
           with sync_playwright() as p:
-              browser = p.chromium.launch(headless=True)
-              page = browser.new_page()
 
-              # =====================================================
-              # 1. ラブラッド予約トップ
-              # =====================================================
+              browser = p.chromium.launch(headless=True)
+
+              page = browser.new_page(
+                  viewport={"width": 1280, "height": 2000},
+                  locale="ja-JP"
+              )
+
               print("=== 1. ReservationHome ===")
 
               page.goto(
-                  URL,
-                  wait_until="domcontentloaded"
+                  BASE_URL,
+                  wait_until="domcontentloaded",
+                  timeout=60000
               )
 
-              page.wait_for_timeout(2000)
+              page.wait_for_timeout(3000)
 
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # =====================================================
-              # 2. 北海道をクリック
-              # =====================================================
-              print("\n=== 2. 北海道をクリック ===")
+              print()
+              print("=== 2. 北海道を選択 ===")
 
-              hokkaido_link = page.locator(
-                  "#ReservationHome\\:j_id63\\:j_id104\\:0\\:j_id106"
-              )
+              hokkaido = page.locator("a").filter(
+                  has_text="北海道"
+              ).first
 
-              print(
-                  "北海道リンク数:",
-                  hokkaido_link.count()
-              )
+              print("北海道リンク数:", page.locator("a").filter(
+                  has_text="北海道"
+              ).count())
 
-              if hokkaido_link.count() == 0:
-                  print("❌ 北海道リンクが見つかりません")
-                  browser.close()
-                  raise SystemExit(1)
+              hokkaido.click()
 
-              hokkaido_link.click()
-
-              page.wait_for_timeout(2000)
+              page.wait_for_timeout(3000)
 
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # =====================================================
-              # 3. 「献血の予約」をクリック
-              # =====================================================
-              print("\n=== 3. 献血の予約 ===")
+              print()
+              print("=== 3. 「献血の予約」を選択 ===")
 
-              reservation_link = page.get_by_text(
-                  "献血の予約",
-                  exact=True
-              )
+              reserve = page.locator("a").filter(
+                  has_text="献血の予約"
+              ).first
 
-              print(
-                  "献血の予約リンク数:",
-                  reservation_link.count()
-              )
+              print("献血の予約リンク数:", page.locator("a").filter(
+                  has_text="献血の予約"
+              ).count())
 
-              if reservation_link.count() == 0:
-                  print("❌ 「献血の予約」が見つかりません")
-                  browser.close()
-                  raise SystemExit(1)
+              reserve.click()
 
-              reservation_link.first.click()
-
-              page.wait_for_timeout(2000)
+              page.wait_for_timeout(3000)
 
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # =====================================================
-              # 4. 「献血予約の開始」をクリック
-              # =====================================================
-              print("\n=== 4. 献血予約の開始 ===")
+              print()
+              print("=== 4. 「献血予約の開始」を選択 ===")
 
-              start_link = page.get_by_text(
-                  "献血予約の開始",
-                  exact=True
-              )
+              start = page.locator("a").filter(
+                  has_text="献血予約の開始"
+              ).first
 
-              print(
-                  "献血予約の開始リンク数:",
-                  start_link.count()
-              )
+              print("献血予約の開始リンク数:", page.locator("a").filter(
+                  has_text="献血予約の開始"
+              ).count())
 
-              if start_link.count() == 0:
-                  print("❌ 「献血予約の開始」が見つかりません")
-                  browser.close()
-                  raise SystemExit(1)
+              start.click()
 
-              start_link.first.click()
-
-              page.wait_for_timeout(2000)
+              page.wait_for_timeout(3000)
 
               print("URL:", page.url)
               print("TITLE:", page.title())
 
-              # =====================================================
-              # 5. 年齢確認
-              # =====================================================
-              print("\n=== 5. 年齢確認 ===")
+              print()
+              print("=== 5. 年齢確認 ===")
 
-              male = page.locator("#selectedmale")
+              # テスト用の性別
+              page.locator("#selectedmale").click()
 
-              print(
-                  "男性ボタン数:",
-                  male.count()
-              )
+              # テスト用生年月日
+              # 実際のユーザー情報ではありません。
+              page.locator("select").nth(0).select_option("1990")
+              page.locator("select").nth(1).select_option("1")
+              page.locator("select").nth(2).select_option("1")
 
-              if male.count() == 0:
-                  print("❌ 男性ボタンが見つかりません")
-                  browser.close()
-                  raise SystemExit(1)
-
-              male.click()
-
-              selects = page.locator("select")
-
-              print(
-                  "select数:",
-                  selects.count()
-              )
-
-              if selects.count() < 3:
-                  print("❌ 生年月日のselectが3つ見つかりません")
-                  browser.close()
-                  raise SystemExit(1)
-
-              # テスト用の生年月日
-              selects.nth(0).select_option(label="1990")
-              selects.nth(1).select_option(label="1")
-              selects.nth(2).select_option(label="1")
-
-              print(
-                  "生年月日: 1990年1月1日"
-              )
-
-              print(
-                  "性別: 男性"
-              )
-
-              # =====================================================
-              # 6. 年齢確認「次へ」
-              # =====================================================
-              print("\n=== 6. 年齢確認「次へ」 ===")
+              page.wait_for_timeout(500)
 
               next_button = page.locator(
                   "#Blooddonationageform\\:j_id41\\:nextButton"
               )
 
+              print("次へボタン数:", next_button.count())
+
+              next_button.click(force=True)
+
+              page.wait_for_timeout(4000)
+
+              print("URL:", page.url)
+              print("TITLE:", page.title())
+
+              print()
+              print("=== 6. 北海道の施設一覧 ===")
+
               print(
-                  "次へボタン数:",
-                  next_button.count()
+                  page.locator("body").inner_text()
               )
 
-              if next_button.count() == 0:
-                  print("❌ 次へボタンが見つかりません")
+              print()
+              print("=== 7. 予約するリンク ===")
+
+              reserve_links = page.locator("a").filter(
+                  has_text="予約する"
+              )
+
+              count = reserve_links.count()
+
+              print("予約するリンク数:", count)
+
+              if count == 0:
+                  print("ERROR: 予約するリンクが見つかりません")
                   browser.close()
                   raise SystemExit(1)
 
-              next_button.click(
-                  force=True
-              )
+              for i in range(count):
+                  link = reserve_links.nth(i)
 
-              page.wait_for_timeout(3000)
+                  print()
+                  print("--------------------------------")
+                  print("予約する #", i)
+                  print("--------------------------------")
 
-              print(
-                  "URL:",
-                  page.url
-              )
-
-              print(
-                  "TITLE:",
-                  page.title()
-              )
-
-              # =====================================================
-              # 7. 北海道をクリック
-              # =====================================================
-              print("\n=== 7. 北海道をクリック ===")
-
-              hokkaido_after = page.locator(
-                  "#ReservationHome\\:j_id63\\:j_id104\\:0\\:j_id106"
-              )
-
-              print(
-                  "北海道リンク数:",
-                  hokkaido_after.count()
-              )
-
-              if hokkaido_after.count() == 0:
-
-                  print(
-                      "❌ 北海道リンクが見つかりません"
-                  )
-
-                  print(
-                      "\n=== 現在のページ本文 ==="
-                  )
-
-                  print(
-                      page.locator("body").inner_text()
-                  )
-
-                  browser.close()
-                  raise SystemExit(1)
-
-              hokkaido_after.click()
-
-              # Ajaxで施設一覧が表示されるまで待つ
-              page.wait_for_timeout(3000)
-
-              print(
-                  "北海道クリック後URL:",
-                  page.url
-              )
-
-              print(
-                  "北海道クリック後TITLE:",
-                  page.title()
-              )
-
-              # =====================================================
-              # 8. 施設名が表示されているか確認
-              # =====================================================
-              print(
-                  "\n=== 8. 施設一覧確認 ==="
-              )
-
-              facilities = [
-                  "北海道赤十字血液センター",
-                  "大通献血ルーム",
-                  "アスティ献血ルーム",
-                  "新さっぽろ献血ルーム",
-                  "北彩都あさひかわ献血ルーム",
-                  "帯広すずらん献血ルーム",
-              ]
-
-              body_text = (
-                  page.locator("body")
-                  .inner_text()
-              )
-
-              for facility in facilities:
-
-                  if facility in body_text:
-                      print(
-                          "FOUND FACILITY:",
-                          facility
-                      )
-                  else:
-                      print(
-                          "NOT FOUND FACILITY:",
-                          facility
-                      )
-
-              # =====================================================
-              # 9. 「予約する」を調査
-              # =====================================================
-              print(
-                  "\n=== 9. 予約する要素のHTML ==="
-              )
-
-              reserve_buttons = page.get_by_text(
-                  "予約する",
-                  exact=True
-              )
-
-              print(
-                  "「予約する」要素数:",
-                  reserve_buttons.count()
-              )
-
-              for i in range(
-                  reserve_buttons.count()
-              ):
+                  print("TEXT:", link.inner_text())
 
                   try:
-
-                      element = reserve_buttons.nth(i)
-
-                      print(
-                          "\n--------------------------------"
-                      )
-
-                      print(
-                          f"予約する #{i}"
-                      )
-
-                      print(
-                          "--------------------------------"
-                      )
-
-                      print(
-                          "TAG:",
-                          element.evaluate(
-                              "(el) => el.tagName"
-                          )
-                      )
-
-                      print(
-                          "TEXT:",
-                          element.inner_text().strip()
-                      )
-
-                      print(
-                          "OUTER HTML:"
-                      )
-
-                      print(
-                          element.evaluate(
-                              "(el) => el.outerHTML"
-                          )
-                      )
-
-                      print(
-                          "\nPARENT HTML:"
-                      )
-
-                      print(
-                          element.evaluate(
-                              "(el) => el.parentElement.outerHTML"
-                          )
-                      )
-
+                      print("HTML:")
+                      print(link.evaluate(
+                          "(el) => el.outerHTML"
+                      ))
                   except Exception as e:
+                      print("HTML取得失敗:", e)
 
-                      print(
-                          f"予約する #{i} "
-                          f"の調査でエラー:",
-                          e
-                      )
+              print()
+              print("=== 8. 最初の施設を選択 ===")
 
-              # =====================================================
-              # 10. 各施設のHTMLを調査
-              # =====================================================
+              # 最初の施設
+              # 北海道赤十字血液センター
+              first_reserve = reserve_links.nth(0)
+
+              print("選択する施設:")
               print(
-                  "\n=== 10. 施設名のHTML ==="
+                  first_reserve.locator(
+                      "xpath=ancestor::li[contains(@class,'mod-list-room__list')]"
+                  ).inner_text()
               )
 
-              for facility in facilities:
+              first_reserve.click()
 
-                  print(
-                      "\n================================"
-                  )
+              page.wait_for_timeout(5000)
 
-                  print(
-                      "FACILITY:",
-                      facility
-                  )
+              print()
+              print("=== 9. 予約詳細画面 ===")
 
-                  print(
-                      "================================"
-                  )
+              print("URL:", page.url)
+              print("TITLE:", page.title())
 
-                  locator = page.get_by_text(
-                      facility,
-                      exact=True
-                  )
-
-                  print(
-                      "要素数:",
-                      locator.count()
-                  )
-
-                  if locator.count() > 0:
-
-                      try:
-
-                          element = locator.first
-
-                          print(
-                              "TAG:",
-                              element.evaluate(
-                                  "(el) => el.tagName"
-                              )
-                          )
-
-                          print(
-                              "OUTER HTML:"
-                          )
-
-                          print(
-                              element.evaluate(
-                                  "(el) => el.outerHTML"
-                              )
-                          )
-
-                          print(
-                              "\nPARENT HTML:"
-                          )
-
-                          print(
-                              element.evaluate(
-                                  "(el) => el.parentElement.outerHTML"
-                              )
-                          )
-
-                      except Exception as e:
-
-                          print(
-                              "HTML取得エラー:",
-                              e
-                          )
-
-              # =====================================================
-              # 11. 「血漿成分献血」のHTMLを調査
-              # =====================================================
-              print(
-                  "\n=== 11. 血漿成分献血のHTML ==="
-              )
-
-              plasma = page.get_by_text(
-                  "血漿成分献血",
-                  exact=True
-              )
+              print()
+              print("=== 10. PAGE TEXT ===")
 
               print(
-                  "血漿成分献血の要素数:",
-                  plasma.count()
+                  page.locator("body").inner_text()
               )
 
-              for i in range(
-                  plasma.count()
-              ):
+              print()
+              print("=== 11. ALL LINKS ===")
+
+              links = page.locator("a")
+
+              print("リンク総数:", links.count())
+
+              for i in range(links.count()):
+                  link = links.nth(i)
 
                   try:
-
-                      element = plasma.nth(i)
-
-                      print(
-                          "\n--------------------------------"
-                      )
-
-                      print(
-                          f"血漿成分献血 #{i}"
-                      )
-
-                      print(
-                          "--------------------------------"
-                      )
-
-                      print(
-                          "TAG:",
-                          element.evaluate(
-                              "(el) => el.tagName"
-                          )
-                      )
-
-                      print(
-                          "OUTER HTML:"
-                      )
-
-                      print(
-                          element.evaluate(
-                              "(el) => el.outerHTML"
-                          )
-                      )
-
-                      print(
-                          "\nPARENT HTML:"
-                      )
-
-                      print(
-                          element.evaluate(
-                              "(el) => el.parentElement.outerHTML"
-                          )
-                      )
-
-                  except Exception as e:
-
-                      print(
-                          f"血漿成分献血 #{i} "
-                          f"の調査でエラー:",
-                          e
-                      )
-
-              # =====================================================
-              # 12. ページ内のボタン・inputを調査
-              # =====================================================
-              print(
-                  "\n=== 12. BUTTON / INPUT ==="
-              )
-
-              buttons = page.locator(
-                  "button, input"
-              )
-
-              print(
-                  "button/input総数:",
-                  buttons.count()
-              )
-
-              for i in range(
-                  buttons.count()
-              ):
-
-                  try:
-
-                      element = buttons.nth(i)
-
-                      tag = element.evaluate(
-                          "(el) => el.tagName"
-                      )
-
+                      text = link.inner_text().strip()
+                  except:
                       text = ""
 
+                  if text:
                       try:
-                          text = (
-                              element.inner_text()
-                              .strip()
-                          )
+                          href = link.get_attribute("href")
                       except:
-                          pass
+                          href = None
 
-                      name = element.get_attribute(
-                          "name"
+                      print(
+                          f"LINK {i}: TEXT={text} HREF={href}"
                       )
 
-                      element_id = element.get_attribute(
-                          "id"
+              print()
+              print("=== 12. SELECT ===")
+
+              selects = page.locator("select")
+
+              print("select総数:", selects.count())
+
+              for i in range(selects.count()):
+
+                  sel = selects.nth(i)
+
+                  print()
+                  print("--------------------------------")
+                  print("SELECT", i)
+                  print("--------------------------------")
+
+                  try:
+                      print("NAME:", sel.get_attribute("name"))
+                      print("ID:", sel.get_attribute("id"))
+                      print("VALUE:", sel.input_value())
+
+                      print(
+                          sel.evaluate(
+                              "(el) => el.outerHTML"
+                          )
                       )
 
-                      value = element.get_attribute(
-                          "value"
+                  except Exception as e:
+                      print("取得失敗:", e)
+
+              print()
+              print("=== 13. INPUT / BUTTON ===")
+
+              elements = page.locator(
+                  "input, button"
+              )
+
+              print(
+                  "input/button総数:",
+                  elements.count()
+              )
+
+              for i in range(elements.count()):
+
+                  el = elements.nth(i)
+
+                  try:
+                      print(
+                          "ELEMENT",
+                          i,
+                          "TAG=",
+                          el.evaluate("(e) => e.tagName"),
+                          "TEXT=",
+                          el.inner_text(),
+                          "NAME=",
+                          el.get_attribute("name"),
+                          "ID=",
+                          el.get_attribute("id"),
+                          "VALUE=",
+                          el.get_attribute("value")
+                      )
+
+                  except Exception as e:
+                      print(
+                          "ELEMENT",
+                          i,
+                          "取得失敗:",
+                          e
+                      )
+
+              print()
+              print("=== 14. 「血漿成分献血」 ===")
+
+              plasma = page.locator(
+                  "text=血漿成分献血"
+              )
+
+              print(
+                  "血漿成分献血要素数:",
+                  plasma.count()
+              )
+
+              for i in range(plasma.count()):
+
+                  el = plasma.nth(i)
+
+                  try:
+                      print()
+                      print(
+                          "PLASMA",
+                          i
                       )
 
                       print(
-                          f"ELEMENT {i}: "
-                          f"TAG={tag} "
-                          f"TEXT={text} "
-                          f"NAME={name} "
-                          f"ID={element_id} "
-                          f"VALUE={value}"
+                          el.evaluate(
+                              "(e) => e.outerHTML"
+                          )
                       )
 
-                  except Exception:
-                      pass
+                  except Exception as e:
+                      print(
+                          "取得失敗:",
+                          e
+                      )
 
-              # =====================================================
-              # 13. ページ本文
-              # =====================================================
-              print(
-                  "\n=== 13. PAGE TEXT ==="
-              )
-
-              print(
-                  body_text
-              )
-
-              # =====================================================
-              # 14. スクリーンショット
-              # =====================================================
-              print(
-                  "\n=== 14. SCREENSHOT ==="
-              )
-
-              page.screenshot(
-                  path="lalblood_hokkaido_facility.png",
-                  full_page=True
-              )
-
-              print(
-                  "スクリーンショット保存完了"
-              )
-
-              print(
-                  "\n=== TEST FINISHED ==="
-              )
+              print()
+              print("=== 15. FINISHED ===")
 
               browser.close()
-          PYTHON
+          PY
 
-          python test.py
-
-      # ==========================================================
-      # スクリーンショットを保存
-      # ==========================================================
-      - name: Upload screenshot
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lalblood-hokkaido-facility-test
-          path: lalblood_hokkaido_facility.png
-          if-no-files-found: ignore
+          python test_labrad.py
