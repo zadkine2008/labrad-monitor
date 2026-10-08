@@ -19,56 +19,35 @@ with sync_playwright() as p:
     print("URL:", page.url)
     print("TITLE:", page.title())
     # ==========================================
-    # 2. 最初の北海道を選択
+    # 2. 北海道
     # ==========================================
     print()
     print("=== 2. 北海道を選択 ===")
-    hokkaido = page.locator("a").filter(
+    page.locator("a").filter(
         has_text="北海道"
-    ).first
-    print(
-        "北海道リンク数:",
-        page.locator("a").filter(
-            has_text="北海道"
-        ).count()
-    )
-    hokkaido.click()
+    ).first.click()
     page.wait_for_timeout(3000)
     print("URL:", page.url)
     print("TITLE:", page.title())
     # ==========================================
-    # 3. 「献血の予約」を選択
+    # 3. 献血の予約
     # ==========================================
     print()
-    print("=== 3. 「献血の予約」を選択 ===")
-    reserve = page.locator("a").filter(
+    print("=== 3. 「献血の予約」 ===")
+    page.locator("a").filter(
         has_text="献血の予約"
-    ).first
-    print(
-        "献血の予約リンク数:",
-        page.locator("a").filter(
-            has_text="献血の予約"
-        ).count()
-    )
-    reserve.click()
+    ).first.click()
     page.wait_for_timeout(3000)
     print("URL:", page.url)
     print("TITLE:", page.title())
     # ==========================================
-    # 4. 「献血予約の開始」を選択
+    # 4. 献血予約の開始
     # ==========================================
     print()
-    print("=== 4. 「献血予約の開始」を選択 ===")
-    start = page.locator("a").filter(
+    print("=== 4. 「献血予約の開始」 ===")
+    page.locator("a").filter(
         has_text="献血予約の開始"
-    ).first
-    print(
-        "献血予約の開始リンク数:",
-        page.locator("a").filter(
-            has_text="献血予約の開始"
-        ).count()
-    )
-    start.click()
+    ).first.click()
     page.wait_for_timeout(3000)
     print("URL:", page.url)
     print("TITLE:", page.title())
@@ -77,149 +56,36 @@ with sync_playwright() as p:
     # ==========================================
     print()
     print("=== 5. 年齢確認 ===")
-    # テスト用の性別
     page.locator("#selectedmale").click()
-    # テスト用の生年月日
+    # テスト用
     # 1990年1月1日
     page.locator("select").nth(0).select_option("1990")
     page.locator("select").nth(1).select_option("1")
     page.locator("select").nth(2).select_option("1")
     page.wait_for_timeout(500)
-    next_button = page.locator(
+    page.locator(
         "#Blooddonationageform\\:j_id41\\:nextButton"
-    )
-    print(
-        "次へボタン数:",
-        next_button.count()
-    )
-    next_button.click(force=True)
+    ).click(force=True)
     page.wait_for_timeout(4000)
     print("URL:", page.url)
     print("TITLE:", page.title())
     # ==========================================
-    # 6. 年齢確認後の北海道を選択
+    # 6. 年齢確認後の北海道
     # ==========================================
     print()
-    print("=== 6. 年齢確認後の北海道を選択 ===")
-    hokkaido_after_age = page.locator(
-        "a"
-    ).filter(
+    print("=== 6. 年齢確認後の北海道 ===")
+    page.locator("a").filter(
         has_text="北海道"
-    ).first
-    print(
-        "北海道リンク数:",
-        page.locator("a").filter(
-            has_text="北海道"
-        ).count()
-    )
-    print("北海道リンクHTML:")
-    try:
-        print(
-            hokkaido_after_age.evaluate(
-                "(el) => el.outerHTML"
-            )
-        )
-    except Exception as e:
-        print(
-            "HTML取得失敗:",
-            e
-        )
-    hokkaido_after_age.click()
+    ).first.click()
     page.wait_for_timeout(4000)
-    print(
-        "URL:",
-        page.url
-    )
-    print(
-        "TITLE:",
-        page.title()
-    )
+    print("URL:", page.url)
+    print("TITLE:", page.title())
     # ==========================================
-    # 7. 北海道の施設一覧
-    # ==========================================
-    print()
-    print("=== 7. 北海道の施設一覧 ===")
-    print(
-        page.locator("body").inner_text()
-    )
-    # ==========================================
-    # 8. 「予約する」リンク
-    # ==========================================
-    print()
-    print("=== 8. 予約するリンク ===")
-    reserve_links = page.locator(
-        "a"
-    ).filter(
-        has_text="予約する"
-    )
-    count = reserve_links.count()
-    print(
-        "予約するリンク数:",
-        count
-    )
-    if count == 0:
-        print(
-            "ERROR: 予約するリンクが見つかりません"
-        )
-        print()
-        print(
-            "現在のURL:",
-            page.url
-        )
-        print()
-        print(
-            "現在のページ本文:"
-        )
-        print(
-            page.locator("body").inner_text()
-        )
-        browser.close()
-        raise SystemExit(1)
-    # ==========================================
-    # 9. 各施設を表示
-    # ==========================================
-    print()
-    print("=== 9. 各施設の予約リンク ===")
-    for i in range(count):
-        link = reserve_links.nth(i)
-        print()
-        print("--------------------------------")
-        print(
-            "予約する #",
-            i
-        )
-        print("--------------------------------")
-        try:
-            card = link.locator(
-                "xpath=ancestor::li[contains(@class,'mod-list-room__list')]"
-            )
-            print("施設情報:")
-            print(
-                card.inner_text()
-            )
-        except Exception as e:
-            print(
-                "施設情報取得失敗:",
-                e
-            )
-        try:
-            print("HTML:")
-            print(
-                link.evaluate(
-                    "(el) => el.outerHTML"
-                )
-            )
-        except Exception as e:
-            print(
-                "HTML取得失敗:",
-                e
-            )
-    # ==========================================
-    # 10. 北海道赤十字血液センター
+    # 7. 北海道赤十字血液センター
     # ==========================================
     print()
     print(
-        "=== 10. 北海道赤十字血液センターを選択 ==="
+        "=== 7. 北海道赤十字血液センター ==="
     )
     target_card = page.locator(
         "li.mod-list-room__list"
@@ -227,7 +93,7 @@ with sync_playwright() as p:
         has_text="北海道赤十字血液センター"
     ).first
     print(
-        "対象施設カード数:",
+        "施設カード数:",
         page.locator(
             "li.mod-list-room__list"
         ).filter(
@@ -235,17 +101,15 @@ with sync_playwright() as p:
         ).count()
     )
     print()
-    print("対象施設の内容:")
+    print("施設内容:")
     print(
         target_card.inner_text()
     )
     # ==========================================
-    # 11. 血漿成分献血
+    # 8. 血漿成分献血確認
     # ==========================================
     print()
-    print(
-        "=== 11. 血漿成分献血を確認 ==="
-    )
+    print("=== 8. 血漿成分献血 ===")
     plasma = target_card.locator(
         ".mod-icon-dnt-type-plasma.is-on"
     )
@@ -254,12 +118,10 @@ with sync_playwright() as p:
         plasma.count()
     )
     # ==========================================
-    # 12. 「予約する」をクリック
+    # 9. 予約する
     # ==========================================
     print()
-    print(
-        "=== 12. 「予約する」をクリック ==="
-    )
+    print("=== 9. 予約する ===")
     target_reserve = target_card.locator(
         "a"
     ).filter(
@@ -280,44 +142,84 @@ with sync_playwright() as p:
             "(el) => el.outerHTML"
         )
     )
-    print()
-    print(
-        "予約リンクをクリックします..."
-    )
     target_reserve.click()
     page.wait_for_timeout(5000)
     # ==========================================
-    # 13. 予約詳細画面
+    # 10. 予約詳細画面
     # ==========================================
     print()
-    print(
-        "=== 13. 予約詳細画面 ==="
-    )
-    print(
-        "URL:",
-        page.url
-    )
-    print(
-        "TITLE:",
-        page.title()
-    )
+    print("==========================================")
+    print("=== 10. 予約詳細画面 ===")
+    print("==========================================")
+    print()
+    print("URL:")
+    print(page.url)
+    print()
+    print("TITLE:")
+    print(page.title())
     # ==========================================
-    # 14. ページ本文
+    # 11. ページ本文
     # ==========================================
     print()
-    print(
-        "=== 14. PAGE TEXT ==="
-    )
-    print(
-        page.locator("body").inner_text()
-    )
+    print("==========================================")
+    print("=== 11. PAGE TEXT ===")
+    print("==========================================")
+    body_text = page.locator(
+        "body"
+    ).inner_text()
+    print(body_text)
     # ==========================================
-    # 15. 全リンク
+    # 12. 日付・時間に関係しそうなテキスト
     # ==========================================
     print()
-    print(
-        "=== 15. ALL LINKS ==="
-    )
+    print("==========================================")
+    print("=== 12. 日付・時間関連テキスト ===")
+    print("==========================================")
+    keywords = [
+        "予約",
+        "空き",
+        "空席",
+        "受付",
+        "時間",
+        "時",
+        "分",
+        "午前",
+        "午後",
+        "献血",
+        "血漿",
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土",
+        "日曜日",
+        "月曜日",
+        "火曜日",
+        "水曜日",
+        "木曜日",
+        "金曜日",
+        "土曜日"
+    ]
+    for line in body_text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if any(
+            keyword in line
+            for keyword in keywords
+        ):
+            print(
+                line
+            )
+    # ==========================================
+    # 13. 全リンクの詳細
+    # ==========================================
+    print()
+    print("==========================================")
+    print("=== 13. LINK 詳細 ===")
+    print("==========================================")
     links = page.locator("a")
     print(
         "リンク総数:",
@@ -331,25 +233,70 @@ with sync_playwright() as p:
             text = link.inner_text().strip()
         except:
             text = ""
-        if text:
-            try:
-                href = link.get_attribute(
-                    "href"
-                )
-            except:
-                href = None
-            print(
-                f"LINK {i}: "
-                f"TEXT={text} "
-                f"HREF={href}"
+        try:
+            href = link.get_attribute(
+                "href"
             )
+        except:
+            href = None
+        try:
+            class_name = link.get_attribute(
+                "class"
+            )
+        except:
+            class_name = None
+        try:
+            onclick = link.get_attribute(
+                "onclick"
+            )
+        except:
+            onclick = None
+        if text or href or onclick:
+            print()
+            print(
+                "--------------------------------"
+            )
+            print(
+                "LINK:",
+                i
+            )
+            print(
+                "TEXT:",
+                text
+            )
+            print(
+                "HREF:",
+                href
+            )
+            print(
+                "CLASS:",
+                class_name
+            )
+            print(
+                "ONCLICK:",
+                onclick
+            )
+            try:
+                print(
+                    "OUTERHTML:"
+                )
+                print(
+                    link.evaluate(
+                        "(el) => el.outerHTML"
+                    )
+                )
+            except Exception as e:
+                print(
+                    "HTML取得失敗:",
+                    e
+                )
     # ==========================================
-    # 16. SELECT
+    # 14. SELECT 詳細
     # ==========================================
     print()
-    print(
-        "=== 16. SELECT ==="
-    )
+    print("==========================================")
+    print("=== 14. SELECT 詳細 ===")
+    print("==========================================")
     selects = page.locator(
         "select"
     )
@@ -366,28 +313,24 @@ with sync_playwright() as p:
             "--------------------------------"
         )
         print(
-            "SELECT",
+            "SELECT:",
             i
-        )
-        print(
-            "--------------------------------"
         )
         try:
             print(
                 "NAME:",
-                sel.get_attribute(
-                    "name"
-                )
+                sel.get_attribute("name")
             )
             print(
                 "ID:",
-                sel.get_attribute(
-                    "id"
-                )
+                sel.get_attribute("id")
             )
             print(
                 "VALUE:",
                 sel.input_value()
+            )
+            print(
+                "OUTERHTML:"
             )
             print(
                 sel.evaluate(
@@ -400,80 +343,58 @@ with sync_playwright() as p:
                 e
             )
     # ==========================================
-    # 17. INPUT / BUTTON
+    # 15. INPUT 詳細
     # ==========================================
     print()
-    print(
-        "=== 17. INPUT / BUTTON ==="
+    print("==========================================")
+    print("=== 15. INPUT 詳細 ===")
+    print("==========================================")
+    inputs = page.locator(
+        "input"
     )
-    elements = page.locator(
-        "input, button"
-    )
     print(
-        "input/button総数:",
-        elements.count()
+        "input総数:",
+        inputs.count()
     )
     for i in range(
-        elements.count()
+        inputs.count()
     ):
-        el = elements.nth(i)
+        el = inputs.nth(i)
+        print()
+        print(
+            "--------------------------------"
+        )
+        print(
+            "INPUT:",
+            i
+        )
         try:
             print(
-                "ELEMENT",
-                i,
-                "TAG=",
-                el.evaluate(
-                    "(e) => e.tagName"
-                ),
-                "TEXT=",
-                el.inner_text(),
-                "NAME=",
-                el.get_attribute(
-                    "name"
-                ),
-                "ID=",
-                el.get_attribute(
-                    "id"
-                ),
-                "VALUE=",
-                el.get_attribute(
-                    "value"
-                )
+                "TYPE:",
+                el.get_attribute("type")
             )
-        except Exception as e:
             print(
-                "ELEMENT",
-                i,
-                "取得失敗:",
-                e
+                "NAME:",
+                el.get_attribute("name")
             )
-    # ==========================================
-    # 18. 血漿成分献血
-    # ==========================================
-    print()
-    print(
-        "=== 18. 「血漿成分献血」 ==="
-    )
-    plasma_all = page.locator(
-        "text=血漿成分献血"
-    )
-    print(
-        "血漿成分献血要素数:",
-        plasma_all.count()
-    )
-    for i in range(
-        plasma_all.count()
-    ):
-        el = plasma_all.nth(i)
-        try:
-            print()
             print(
-                "PLASMA",
-                i
+                "ID:",
+                el.get_attribute("id")
+            )
+            print(
+                "VALUE:",
+                el.get_attribute("value")
+            )
+            print(
+                "CLASS:",
+                el.get_attribute("class")
+            )
+            print(
+                "OUTERHTML:"
             )
             print(
                 el.evaluate(
-                    "(e) => e.outerHTML"
+                    "(el) => el.outerHTML"
                 )
             )
         except Exception as e:
@@ -482,10 +403,148 @@ with sync_playwright() as p:
                 e
             )
     # ==========================================
-    # 19. 完了
+    # 16. BUTTON 詳細
     # ==========================================
     print()
-    print(
-        "=== 19. FINISHED ==="
+    print("==========================================")
+    print("=== 16. BUTTON 詳細 ===")
+    print("==========================================")
+    buttons = page.locator(
+        "button"
     )
+    print(
+        "button総数:",
+        buttons.count()
+    )
+    for i in range(
+        buttons.count()
+    ):
+        el = buttons.nth(i)
+        print()
+        print(
+            "--------------------------------"
+        )
+        print(
+            "BUTTON:",
+            i
+        )
+        try:
+            print(
+                "TEXT:",
+                el.inner_text()
+            )
+            print(
+                "TYPE:",
+                el.get_attribute("type")
+            )
+            print(
+                "NAME:",
+                el.get_attribute("name")
+            )
+            print(
+                "ID:",
+                el.get_attribute("id")
+            )
+            print(
+                "CLASS:",
+                el.get_attribute("class")
+            )
+            print(
+                "OUTERHTML:"
+            )
+            print(
+                el.evaluate(
+                    "(el) => el.outerHTML"
+                )
+            )
+        except Exception as e:
+            print(
+                "取得失敗:",
+                e
+            )
+    # ==========================================
+    # 17. 時間らしい文字列を含む要素
+    # ==========================================
+    print()
+    print("==========================================")
+    print("=== 17. 時間表示らしき要素 ===")
+    print("==========================================")
+    all_elements = page.locator(
+        "body *"
+    )
+    found = 0
+    for i in range(
+        all_elements.count()
+    ):
+        el = all_elements.nth(i)
+        try:
+            text = el.inner_text().strip()
+        except:
+            continue
+        if not text:
+            continue
+        # 時刻らしい表記
+        if (
+            "：" in text
+            or ":" in text
+            or "午前" in text
+            or "午後" in text
+        ):
+            # あまりにも巨大な親要素は除外
+            if len(text) <= 300:
+                print()
+                print(
+                    "ELEMENT:",
+                    i
+                )
+                print(
+                    "TEXT:",
+                    text
+                )
+                try:
+                    print(
+                        "TAG:",
+                        el.evaluate(
+                            "(e) => e.tagName"
+                        )
+                    )
+                    print(
+                        "CLASS:",
+                        el.get_attribute(
+                            "class"
+                        )
+                    )
+                    print(
+                        "ID:",
+                        el.get_attribute(
+                            "id"
+                        )
+                    )
+                except:
+                    pass
+                found += 1
+                if found >= 100:
+                    break
+    print()
+    print(
+        "時間らしい要素:",
+        found
+    )
+    # ==========================================
+    # 18. HTMLの一部
+    # ==========================================
+    print()
+    print("==========================================")
+    print("=== 18. HTML BODY ===")
+    print("==========================================")
+    html = page.locator(
+        "body"
+    ).inner_html()
+    print(
+        html[:50000]
+    )
+    print()
+    print("==========================================")
+    print("=== 19. FINISHED ===")
+    print("==========================================")
     browser.close()
