@@ -42,6 +42,8 @@ with sync_playwright() as p:
         page.wait_for_load_state("networkidle")
         # 8. 血漿（成分献血）を選択
         page.locator('a[href="qs-type-plasma"]').click()
+        page.wait_for_timeout(2000)
+        print("血漿選択後URL:", page.url)
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(3000)
         # 9. 必要な情報だけ出力
