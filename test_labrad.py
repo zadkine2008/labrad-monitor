@@ -11,7 +11,6 @@ def show_page(page, label):
     print("URL:", page.url)
     print("TITLE:", page.title())
     try:
-        print("画面内容:")
         print(page.locator("body").inner_text()[:3000])
     except Exception as e:
         print("画面内容の取得に失敗:", repr(e))
@@ -21,7 +20,9 @@ def click_text_if_present(page, text, exact=True):
     locator = page.get_by_text(text, exact=exact)
     if locator.count() > 0:
         locator.first.click()
-        page.wait_for_load_state("domcontentloaded", timeout=15000)
+        page.wait_for_load_state(
+            "domcontentloaded", timeout=15000
+        )
         page.wait_for_timeout(2000)
         print(f"クリックしました: {text}")
         return True
@@ -34,59 +35,50 @@ with sync_playwright() as p:
     page.set_default_timeout(15000)
 
     try:
-        # 1. ラブラッドの予約ページを開く
+        # 1. 予約ページを開く
         page.goto(START_URL, wait_until="domcontentloaded")
         page.wait_for_timeout(3000)
-        show_page(page, "予約ページを開いた直後")
+        show_page(page, "予約ページ")
 
         # 2. 都道府県から探す
         click_text_if_present(page, "都道府県から探す")
         show_page(page, "都道府県検索")
 
-        
-# 3. 北海道を選択
-# 都道府県一覧のリンクを優先してクリックする
-hokkaido_link = page.locator(
-    'a[href="#"]'
-).filter(has_text="北海道")
+        # 3. 北海道のリンクを選択
+        # プルダウン内のoptionではなく、リンクを探す
+        hokkaido_link = page.locator(
+            'a[href="#"]'
+        ).filter(has_text="北海道")
 
-if hokkaido_link.count() > 0:
-    hokkaido_link.first.click()
-    page.wait_for_load_state(
-        "domcontentloaded", timeout=15000
-    )
-    page.wait_for_timeout(2000)
-    show_page(page, "北海道を選択した後")
-else:
-    print("北海道のリンクが見つかりませんでした")
-    show_page(page, "北海道のリンク検索失敗")
+        if hokkaido_link.count() > 0:
+            hokkaido_link.first.click()
+            page.wait_for_load_state(
+                "domcontentloaded", timeout=15000
+            )
+            page.wait_for_timeout(2000)
+            show_page(page, "北海道選択後")
+        else:
+            show_page(page, "北海道リンクが見つからない画面")
+            raise RuntimeError("北海道のリンクが見つかりません")
 
-        # 4. ログイン画面への遷移を確認
+        # 4. ログイン画面の場合は内容を表示して停止
         if "Login" in page.url:
             show_page(page, "ログイン画面")
-
-            # ログイン画面にある予約リンクを確認して操作
-            if not click_text_if_present(page, "献血の予約"):
-                print("「献血の予約」リンクが見つかりません")
-                print("ログイン画面の内容を確認してください")
-                raise RuntimeError(
-                    "ログイン画面から先に進めませんでした"
-                )
-
-            show_page(page, "献血の予約をクリックした後")
+            raise RuntimeError(
+                "ログイン画面に移動しました。画面の内容を確認してください"
+            )
 
         # 5. 年齢確認画面が表示されている場合
-        if page.locator(
+        age_select = page.locator(
             'select[name="Blooddonationageform:j_id41:j_id43"]'
-        ).count() > 0:
+        )
 
+        if age_select.count() > 0:
             print("年齢確認画面を検出しました")
 
             page.locator("#selectedmale input").check(force=True)
 
-            page.locator(
-                'select[name="Blooddonationageform:j_id41:j_id43"]'
-            ).select_option(label="1990")
+            age_select.select_option(label="1990")
 
             page.locator(
                 'select[name="Blooddonationageform:j_id41:j_id46"]'
@@ -107,23 +99,24 @@ else:
             show_page(page, "年齢確認後")
 
         # 6. 北海道の施設一覧へ進む
-        if "北海道" in page.locator("body").inner_text():
-            hokkaido_links = page.locator("a").filter(
-                has_text="北海道"
-            )
-            if hokkaido_links.count() > 0:
-                hokkaido_links.first.click()
-                page.wait_for_load_state(
-                    "domcontentloaded", timeout=15000
-                )
-                page.wait_for_timeout(3000)
-
-        show_page(page, "施設一覧の確認")
-
-        # 7. 北海道赤十字血液センターを探す
-        card = page.locator("li.mod-list-room__list").filter(
-            has_text=TARGET_FACILITY
+        # リンクとプルダウンを区別する
+        hokkaido_links = page.locator("a").filter(
+            has_text="北海道"
         )
+
+        if hokkaido_links.count() > 0:
+            hokkaido_links.first.click()
+            page.wait_for_load_state(
+                "domcontentloaded", timeout=15000
+            )
+            page.wait_for_timeout(3000)
+
+        show_page(page, "施設一覧")
+
+        # 7. 対象施設を探す
+        card = page.locator(
+            "li.mod-list-room__list"
+        ).filter(has_text=TARGET_FACILITY)
 
         if card.count() == 0:
             raise RuntimeError(
@@ -161,10 +154,9 @@ else:
             "domcontentloaded", timeout=15000
         )
         page.wait_for_timeout(3000)
-
         show_page(page, "血漿選択後")
 
-        # 9. 日付・時刻・予約状況に関係するリンクを出力
+        # 9. 日付・時刻・予約状況の候補を表示
         print("\n=== 日付・時刻・空き状況の候補 ===")
 
         keywords = [
@@ -196,9 +188,10 @@ else:
         print("関連要素数:", elements.count())
 
         for i in range(min(elements.count(), 20)):
-            element = elements.nth(i)
             try:
-                text = (element.inner_text() or "").strip()
+                text = (
+                    elements.nth(i).inner_text() or ""
+                ).strip()
                 if text:
                     print(f"[{i}] {text[:200]}")
             except Exception:
