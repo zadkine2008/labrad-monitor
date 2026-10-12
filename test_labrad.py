@@ -26,8 +26,11 @@ def show_page(page, label, limit=10000):
 “”“現在のページ情報を表示”””
 print(f”\n=== {label} ===”)
 print(“URL:”, page.url)
-print(“TITLE:”, page.title())
 
+try:
+    print("TITLE:", page.title())
+except Exception as e:
+    print("タイトル取得エラー:", repr(e))
 try:
     print("\n--- 本文 ---")
     print(page.locator("body").inner_text()[:limit])
@@ -98,7 +101,7 @@ page.goto(
 )
 wait_after_action(page)
 show_page(page, "予約トップ")
-# 2. 必要に応じて「都道府県から探す」をクリック
+# 2. 「都道府県から探す」をクリック
 prefecture_tab = page.get_by_text(
     "都道府県から探す",
     exact=True
@@ -108,16 +111,16 @@ if prefecture_tab.count() > 0:
         if prefecture_tab.first.is_visible():
             prefecture_tab.first.click()
             wait_after_action(page)
-    except Exception:
-        pass
+    except Exception as e:
+        print("都道府県タブのクリック時の注意:", repr(e))
 # 3. 北海道を選択
-# 同名の要素がある場合は、表示されているリンクを優先
-hokkaido = page.locator(
+# IDを固定せず、表示されている北海道リンクを探す
+hokkaido_links = page.locator(
     'a[href="#"]'
 ).filter(has_text="北海道")
 clicked = False
-for i in range(hokkaido.count()):
-    element = hokkaido.nth(i)
+for i in range(hokkaido_links.count()):
+    element = hokkaido_links.nth(i)
     try:
         if (
             element.is_visible()
@@ -200,10 +203,11 @@ show_page(page, "予約検索画面")
 
 def click_prefecture_search(page):
 “””
-非表示の「献血場所を探す」ボタンを避け、
-表示されている北海道リンクを利用する。
-“””
+献血場所検索の診断を行う。
 
+非表示の「献血場所を探す」ボタンはクリックせず、
+表示されている北海道リンクを対象とする。
+"""
 print("\n=== 献血場所検索の調査 ===")
 buttons = page.get_by_text(
     "献血場所を探す",
@@ -211,8 +215,8 @@ buttons = page.get_by_text(
 )
 print("「献血場所を探す」の要素数:", buttons.count())
 for i in range(buttons.count()):
+    element = buttons.nth(i)
     try:
-        element = buttons.nth(i)
         print(f"\nボタン候補 [{i}]")
         print(
             element.evaluate(
@@ -221,12 +225,12 @@ for i in range(buttons.count()):
         )
         print("表示状態:", element.is_visible())
     except Exception as e:
-        print("要素調査エラー:", repr(e))
+        print("ボタン調査エラー:", repr(e))
 # 北海道のリンクをIDで特定する
 hokkaido = page.locator(
     'a[id="ReservationHome:j_id63:j_id104:0:j_id106"]'
 )
-# IDが変わっていた場合は、テキストで検索する
+# IDが変わっていた場合はテキストで再検索する
 if hokkaido.count() == 0:
     hokkaido = page.locator(
         'a[href="#"]'
@@ -245,7 +249,9 @@ for i in range(hokkaido.count()):
     except Exception:
         continue
 if target is None:
-    print("\n表示されている北海道リンクが見つかりません。")
+    print(
+        "\n表示されている北海道リンクが見つかりません。"
+    )
     show_page(page, "北海道リンク検索失敗")
     show_links(page)
     show_controls(page)
