@@ -13,9 +13,16 @@ with sync_playwright() as p:
         # 3. 献血予約へ進む
         page.get_by_text("献血の予約", exact=True).first.click()
         page.wait_for_load_state("networkidle")
-        # 4. 献血予約の開始
-        page.get_by_text("献血予約の開始", exact=True).click()
-        page.wait_for_load_state("networkidle")
+# 4. 献血予約の開始
+print("手順4の直前URL:", page.url)
+print("手順4の直前TITLE:", page.title())
+print("手順4の直前画面:", page.locator("body").inner_text()[:2000])
+if "Login" in page.url:
+    print("ログイン画面に移動しています。画面の内容を確認してください。")
+else:
+    page.get_by_text("献血予約の開始", exact=True).click()
+    page.wait_for_load_state("domcontentloaded")
+    print("手順4の後のURL:", page.url)
         # 5. 年齢確認（テスト用の仮データ）
         page.locator("#selectedmale input").check(force=True)
         page.locator(
