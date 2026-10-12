@@ -43,11 +43,23 @@ with sync_playwright() as p:
         click_text_if_present(page, "都道府県から探す")
         show_page(page, "都道府県検索")
 
-        # 3. 北海道を選択
-        if click_text_if_present(page, "北海道"):
-            show_page(page, "北海道を選択した後")
-        else:
-            print("北海道の選択肢が見つかりませんでした")
+        
+# 3. 北海道を選択
+# 都道府県一覧のリンクを優先してクリックする
+hokkaido_link = page.locator(
+    'a[href="#"]'
+).filter(has_text="北海道")
+
+if hokkaido_link.count() > 0:
+    hokkaido_link.first.click()
+    page.wait_for_load_state(
+        "domcontentloaded", timeout=15000
+    )
+    page.wait_for_timeout(2000)
+    show_page(page, "北海道を選択した後")
+else:
+    print("北海道のリンクが見つかりませんでした")
+    show_page(page, "北海道のリンク検索失敗")
 
         # 4. ログイン画面への遷移を確認
         if "Login" in page.url:
