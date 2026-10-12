@@ -4,16 +4,14 @@ import traceback
 
 START_URL = "https://www.kenketsu.jp/ReservationHome"
 
-# ご自身の生年月日に変更してください（以下は入力例です）
+# 年齢確認用の入力例。必要に応じて変更してください。
 BIRTH_YEAR = "1980"
 BIRTH_MONTH = "1"
 BIRTH_DAY = "1"
-
-# "男性" または "女性"
 GENDER = "男性"
 
 
-def wait_after_click(page):
+def wait_after_action(page, seconds=2):
     try:
         page.wait_for_load_state(
             "domcontentloaded",
@@ -22,10 +20,10 @@ def wait_after_click(page):
     except Exception:
         pass
 
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(seconds * 1000)
 
 
-def show_page(page, label, limit=7000):
+def show_page(page, label, limit=10000):
     print(f"\n=== {label} ===")
     print("URL:", page.url)
     print("TITLE:", page.title())
@@ -42,7 +40,7 @@ def show_links(page):
 
     links = page.locator("a")
 
-    for i in range(min(links.count(), 100)):
+    for i in range(min(links.count(), 120)):
         element = links.nth(i)
 
         try:
@@ -54,7 +52,7 @@ def show_links(page):
                 print(
                     f"[{i}] text={text!r}, "
                     f"href={href!r}, "
-                    f"onclick={onclick[:300]!r}"
+                    f"onclick={onclick[:250]!r}"
                 )
         except Exception:
             pass
@@ -73,83 +71,163 @@ def show_controls(page):
             html = elements.nth(i).evaluate(
                 "(el) => el.outerHTML"
             )
-            print(f"\n[{i}] {html[:1500]}")
+            print(f"\n[{i}] {html[:1000]}")
         except Exception:
             pass
 
 
-def enter_age_information(page):
-    print("\n=== 年齢確認画面の入力 ===")
+def reach_reservation_home(page):
+    # 1. 予約トップを開く
+    page.goto(
+        START_URL,
+        wait_until="domcontentloaded"
+    )
+    wait_after_action(page)
+    show_page(page, "予約トップ")
 
-    # 性別を選択
-    gender_locator = page.get_by_text(
-        GENDER,
+    # 2. 都道府県から探す
+    prefecture_tab = page.get_by_text(
+        "都道府県から探す",
         exact=True
     )
 
-    if gender_locator.count() == 0:
+    if prefecture_tab.count() > 0:
+        prefecture_tab.first.click()
+        wait_after_action(page)
+
+    # 3. 北海道を選択
+    hokkaido = page.locator(
+        'a[href="#"]'
+    ).filter(has_text="北海道")
+
+    if hokkaido.count() == 0:
         raise RuntimeError(
-            f"性別「{GENDER}」が見つかりません"
+            "北海道のリンクが見つかりません"
         )
 
-    gender_locator.first.click()
-    page.wait_for_timeout(500)
+    hokkaido.first.click()
+    wait_after_action(page)
+    show_page(page, "北海道選択後")
 
-    # 生年月日を選択
-    selects = page.locator("form select")
-
-    if selects.count() < 3:
-        raise RuntimeError(
-            "生年月日の選択欄が3つ見つかりません"
+    # 4. ログイン画面から予約案内へ
+    if "login" in page.url.lower():
+        reservation = page.get_by_text(
+            "献血の予約",
+            exact=True
         )
 
-    selects.nth(0).select_option(value=BIRTH_YEAR)
-    selects.nth(1).select_option(value=BIRTH_MONTH)
-    selects.nth(2).select_option(value=BIRTH_DAY)
+        if reservation.count() == 0:
+            raise RuntimeError(
+                "ログイン画面で「献血の予約」が見つかりません"
+            )
 
-    print("性別・生年月日の入力操作を行いました。")
+        reservation.first.click()
+        wait_after_action(page)
 
-    # 入力後の状態を確認
-    print("\n--- 入力欄の状態 ---")
+    # 5. 会員登録なしの予約開始
+    if "loginarousalpage" in page.url.lower():
+        start = page.get_by_text(
+            "献血予約の開始",
+            exact=True
+        )
 
-    for i in range(selects.count()):
+        if start.count() == 0:
+            raise RuntimeError(
+                "「献血予約の開始」が見つかりません"
+            )
+
+        start.first.click()
+        wait_after_action(page)
+
+    # 6. 年齢確認
+    if "blooddonationageform" in page.url.lower():
+        gender = page.get_by_text(
+            GENDER,
+            exact=True
+        )
+
+        if gender.count() == 0:
+            raise RuntimeError(
+                f"性別「{GENDER}」が見つかりません"
+            )
+
+        gender.first.click()
+        page.wait_for_timeout(300)
+
+        selects = page.locator("form select")
+
+        if selects.count() < 3:
+            raise RuntimeError(
+                "生年月日の選択欄が見つかりません"
+            )
+
+        selects.nth(0).select_option(BIRTH_YEAR)
+        selects.nth(1).select_option(BIRTH_MONTH)
+        selects.nth(2).select_option(BIRTH_DAY)
+
+        next_link = page.get_by_text(
+            "次へ",
+            exact=True
+        )
+
+        if next_link.count() == 0:
+            raise RuntimeError(
+                "年齢確認画面の「次へ」が見つかりません"
+            )
+
+        next_link.first.click()
+        wait_after_action(page)
+
+    if "reservationhome" not in page.url.lower():
+        raise RuntimeError(
+            "予約検索画面に到達できません。URL: "
+            + page.url
+        )
+
+    show_page(page, "予約検索画面")
+
+
+def click_prefecture_search(page):
+    print("\n=== 献血場所を探すボタンを調査 ===")
+
+    buttons = page.get_by_text(
+        "献血場所を探す",
+        exact=True
+    )
+
+    print("該当要素数:", buttons.count())
+
+    for i in range(buttons.count()):
         try:
             print(
-                f"select[{i}]:",
-                selects.nth(i).input_value()
+                f"\nボタン候補 [{i}]:",
+                buttons.nth(i).evaluate(
+                    "(el) => el.outerHTML"
+                )[:1500]
             )
         except Exception:
             pass
 
-    radios = page.locator('input[type="radio"]')
-
-    for i in range(radios.count()):
-        try:
-            print(
-                f"radio[{i}]:",
-                radios.nth(i).evaluate(
-                    "(el) => ({"
-                    "name: el.name, "
-                    "value: el.value, "
-                    "checked: el.checked, "
-                    "outerHTML: el.outerHTML"
-                    "})"
-                )
-            )
-        except Exception:
-            pass
-
-    # 「次へ」をクリック
-    next_link = page.get_by_text("次へ", exact=True)
-
-    if next_link.count() == 0:
+    if buttons.count() < 2:
         raise RuntimeError(
-            "「次へ」が見つかりません"
+            "「献血場所を探す」が2つ見つかりません。"
+            "画面構成を再確認してください。"
         )
 
-    print("\n「次へ」をクリックします。")
-    next_link.first.click()
-    wait_after_click(page)
+    # 2つ目は都道府県検索側のボタンと想定
+    target = buttons.nth(1)
+
+    print("\nクリック前URL:", page.url)
+    print("2つ目の「献血場所を探す」をクリックします。")
+
+    target.click()
+    wait_after_action(page, seconds=4)
+
+    print("クリック後URL:", page.url)
+
+    show_page(page, "施設検索ボタン押下後")
+    show_links(page)
+    show_controls(page)
 
 
 with sync_playwright() as p:
@@ -159,86 +237,8 @@ with sync_playwright() as p:
     page.set_default_timeout(15000)
 
     try:
-        # 1. 予約ページを開く
-        page.goto(
-            START_URL,
-            wait_until="domcontentloaded"
-        )
-        page.wait_for_timeout(2000)
-        show_page(page, "予約ページ")
-
-        # 2. 都道府県検索へ進む
-        prefecture = page.get_by_text(
-            "都道府県から探す",
-            exact=True
-        )
-
-        if prefecture.count() > 0:
-            prefecture.first.click()
-            wait_after_click(page)
-
-        # 3. 北海道を選択
-        hokkaido = page.locator(
-            'a[href="#"]'
-        ).filter(has_text="北海道")
-
-        if hokkaido.count() == 0:
-            raise RuntimeError(
-                "北海道リンクが見つかりません"
-            )
-
-        hokkaido.first.click()
-        wait_after_click(page)
-
-        # 4. ログイン画面から予約案内へ
-        if "Login" in page.url:
-            reservation = page.get_by_text(
-                "献血の予約",
-                exact=True
-            )
-
-            if reservation.count() == 0:
-                raise RuntimeError(
-                    "「献血の予約」が見つかりません"
-                )
-
-            reservation.first.click()
-            wait_after_click(page)
-
-        # 5. 会員登録なしの予約開始
-        if "loginarousalpage" in page.url.lower():
-            start = page.get_by_text(
-                "献血予約の開始",
-                exact=True
-            )
-
-            if start.count() == 0:
-                raise RuntimeError(
-                    "「献血予約の開始」が見つかりません"
-                )
-
-            start.first.click()
-            wait_after_click(page)
-
-        # 6. 年齢確認画面
-        if "blooddonationageform" not in page.url.lower():
-            show_page(page, "想定外の画面")
-            show_links(page)
-            show_controls(page)
-
-            raise RuntimeError(
-                "年齢確認画面に到達できませんでした"
-            )
-
-        show_page(page, "年齢確認画面")
-
-        # 7. 性別・生年月日を入力して次へ
-        enter_age_information(page)
-
-        # 8. 遷移後の画面を調査
-        show_page(page, "年齢確認後の画面")
-        show_links(page)
-        show_controls(page)
+        reach_reservation_home(page)
+        click_prefecture_search(page)
 
         print("\n=== 診断終了 ===")
 
@@ -247,7 +247,7 @@ with sync_playwright() as p:
         print(repr(e))
         traceback.print_exc()
 
-        show_page(page, "エラー発生時の画面")
+        show_page(page, "エラー発生時")
         show_links(page)
         show_controls(page)
 
